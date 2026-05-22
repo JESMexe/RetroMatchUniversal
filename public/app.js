@@ -1,5 +1,5 @@
 /**
- * RetroMatch OS - v2.2.0 (Universal Shell Engine)
+ * RetroMatch OS - v2.2.1 (Universal Shell Engine)
  * Engineered for Public Web Deployment & Dynamic PDF CV Extraction
  */
 
@@ -421,7 +421,7 @@ class UniversalTerminalShell {
     this.isBooting = true;
     this.input.disabled = true;
 
-    this.printLine("RETROMATCH(R) OS v2.2.0 (UNIVERSAL PUBLIC RELEASE)", "system");
+    this.printLine("RETROMATCH(R) OS v2.2.1 (UNIVERSAL PUBLIC RELEASE)", "system");
     await this.delay(350);
     this.printLine("MEMORY: 1048576 KB OK (DUAL CACHE ENABLED)");
     this.printLine("CPU: COGNITIVE AG-3600 @ 5.20GHz");

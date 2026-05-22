@@ -58,7 +58,8 @@ function extractSkills(text, tags = []) {
     } else if (keyword === 'PL/SQL') {
       hasMatch = lowerText.includes('pl/sql') || lowerText.includes('plsql');
     } else {
-      const regex = new RegExp(`\\b${escaped.toLowerCase()}\\b`, 'i');
+      // Use Unicode-aware lookarounds to prevent accents (like 'ó' in 'Córdoba') from acting as boundaries for single letters like 'C'
+      const regex = new RegExp(`(?<![\\p{L}\\p{N}])${escaped.toLowerCase()}(?![\\p{L}\\p{N}])`, 'ui');
       hasMatch = regex.test(lowerText);
     }
     
@@ -171,8 +172,13 @@ app.get('/api/jobs', async (req, res) => {
         
         // Extract direct application link from Computrabajo bubble panel
         let applyUrl = $(element).find('*[data-href-offer-apply]').attr('data-href-offer-apply') || href;
-        if (applyUrl && applyUrl.startsWith('/')) {
-          applyUrl = `https://ar.computrabajo.com${applyUrl}`;
+        if (applyUrl) {
+          if (applyUrl.startsWith('/')) {
+            applyUrl = `https://ar.computrabajo.com${applyUrl}`;
+          }
+          // Normalize the apply URL by replacing '/candidate/apply/' with '/apply/' to prevent 404 errors.
+          // Also clean up HTML escaped characters.
+          applyUrl = applyUrl.replace('/candidate/apply/', '/apply/').replace(/&amp;/g, '&');
         }
         
         scrapedJobs.push({
@@ -182,7 +188,7 @@ app.get('/api/jobs', async (req, res) => {
           location,
           salary,
           description,
-          requirements: skills.length > 0 ? skills : ['General Operations'],
+          requirements: skills, // Return clean skills to allow client fallback to 50% match score
           experience,
           apply_url: applyUrl,
           source: 'Computrabajo'
@@ -226,7 +232,7 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`\n=============================================================`);
-  console.log(`[SYSTEM] RetroMatch OS (v2.2.0 Universal Edition) Server Started.`);
+  console.log(`[SYSTEM] RetroMatch OS (v2.2.1 Universal Edition) Server Started.`);
   console.log(`[PORT]   Universal Port: http://localhost:${PORT}`);
   console.log(`=============================================================\n`);
 });
