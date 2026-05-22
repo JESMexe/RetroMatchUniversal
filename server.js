@@ -2,6 +2,10 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+puppeteer.use(StealthPlugin());
+const cheerio = require('cheerio');
 
 const app = express();
 const PORT = process.env.PORT || 3001; // Run on port 3001 to prevent conflicts
@@ -71,7 +75,7 @@ function extractSkills(text, tags = []) {
 
 // API endpoint to search/fetch jobs
 app.get('/api/jobs', async (req, res) => {
-  const query = (req.query.q || '').toLowerCase();
+  const query = (req.query.q || '').trim();
   console.log(`[RMT-OS UNIV] Scan request received. Query: "${query}"`);
 
   let allJobs = [];
@@ -85,82 +89,134 @@ app.get('/api/jobs', async (req, res) => {
     console.error('[RMT-OS UNIV] Error reading local jobs feed:', error.message);
   }
 
-  // 2. Fetch live remote jobs from Remotive API
+  // 2. Fetch live jobs from Computrabajo Argentina via Puppeteer Stealth
+  let scrapedJobs = [];
+  let browser = null;
   try {
-    console.log('[RMT-OS UNIV] Fetching live jobs from Remotive...');
-    const remotiveUrl = 'https://remotive.com/api/remote-jobs?limit=30';
-    const remotiveRes = await fetch(remotiveUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (RetroMatch OS Universal Edition)' }
+    const searchQuery = query || 'tecnologia';
+    console.log(`[RMT-OS UNIV] Launching Puppeteer Stealth to scrape Computrabajo for "${searchQuery}"...`);
+    
+    browser = await puppeteer.launch({
+      headless: 'new',
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+    });
+
+    const page = await browser.newPage();
+    
+    // Set viewport & random user agent parameters to make sure it looks like a real browser
+    await page.setViewport({ width: 1280, height: 800 });
+    
+    const searchUrl = `https://ar.computrabajo.com/ofertas-de-trabajo/?q=${encodeURIComponent(searchQuery)}`;
+    console.log(`[RMT-OS UNIV] Navigating to: ${searchUrl}`);
+    
+    await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+    
+    // Wait for the job listings container to appear on the page
+    await page.waitForSelector('article.box_offer', { timeout: 15000 });
+    
+    const html = await page.content();
+    const $ = cheerio.load(html);
+    
+    $('article.box_offer').each((idx, element) => {
+      const dataId = $(element).attr('data-id') || `ct-${idx}-${Date.now()}`;
+      
+      const titleLink = $(element).find('h2.fs18.fwB.prB a.js-o-link');
+      const title = titleLink.text().trim();
+      let href = titleLink.attr('href') || '';
+      if (href && href.startsWith('/')) {
+        href = `https://ar.computrabajo.com${href}`;
+      }
+      
+      // Parse company name
+      let company = $(element).find('a[offer-grid-article-company-url]').text().trim();
+      if (!company) {
+        company = $(element).find('p.dFlex.vm_fx.fs16.fc_base.mt5 a.t_ellipsis').text().trim();
+      }
+      if (!company) {
+        const fullParaText = $(element).find('p.dFlex.vm_fx.fs16.fc_base.mt5').text().trim();
+        company = fullParaText.replace(/\d+,\d+/g, '').replace(/star/g, '').trim();
+      }
+      if (!company) {
+        company = 'Confidencial';
+      }
+      
+      // Parse location
+      const location = $(element).find('p.fs16.fc_base.mt5:not(.dFlex)').text().trim() || 'Argentina';
+      
+      // Parse work mode and salary
+      let workMode = 'Presencial';
+      let salary = 'A convenir';
+      
+      $(element).find('div.fs13.mt15 span.dIB').each((i, el) => {
+        const spanText = $(el).text().trim();
+        const hasHomeIcon = $(el).find('.i_home').length > 0;
+        const hasHygIcon = $(el).find('.i_home_office, .i_home_office_b').length > 0;
+        
+        if (spanText.includes('$')) {
+          salary = spanText;
+        } else if (hasHomeIcon || spanText.toLowerCase().includes('remoto')) {
+          workMode = 'Remoto';
+        } else if (hasHygIcon || spanText.toLowerCase().includes('remoto y presencial') || spanText.toLowerCase().includes('presencial y remoto') || spanText.toLowerCase().includes('hibrid') || spanText.toLowerCase().includes('híbrid')) {
+          workMode = 'Híbrido';
+        } else if (spanText.toLowerCase().includes('presencial')) {
+          workMode = 'Presencial';
+        }
+      });
+      
+      // Classify experience level
+      let experience = 'Junior / Mid';
+      const titleLower = title.toLowerCase();
+      if (titleLower.includes('senior') || titleLower.includes('sr') || titleLower.includes('lead') || titleLower.includes('ssr') || titleLower.includes('semi senior') || titleLower.includes('semisenior') || titleLower.includes('pleno')) {
+        experience = 'Senior';
+      } else if (titleLower.includes('junior') || titleLower.includes('jr') || titleLower.includes('trainee') || titleLower.includes('auxiliar') || titleLower.includes('practicante')) {
+        experience = 'Junior';
+      }
+      
+      // Synthesize overview summary (description)
+      const description = `Se busca ${title} para formar parte del equipo de ${company} en ${location}. Modalidad de trabajo: ${workMode}. Salario: ${salary}. Excelente oportunidad para profesionales que cuenten con habilidades técnicas y metodológicas acordes al perfil del puesto, promoviendo el crecimiento dentro de la organización.`;
+      
+      // Extract requirements skills
+      const skills = extractSkills(title + ' ' + description);
+      
+      scrapedJobs.push({
+        id: `computrabajo-${dataId}`,
+        title,
+        company,
+        location,
+        salary,
+        description,
+        requirements: skills.length > 0 ? skills : ['General Operations'],
+        experience,
+        apply_url: href,
+        source: 'Computrabajo'
+      });
     });
     
-    if (remotiveRes.ok) {
-      const data = await remotiveRes.json();
-      if (data && Array.isArray(data.jobs)) {
-        const parsedRemotive = data.jobs.map(job => {
-          const skills = extractSkills(job.description, job.tags);
-          return {
-            id: `remotive-${job.id}`,
-            title: job.title,
-            company: job.company_name,
-            location: job.candidate_required_location || 'Remote (Global)',
-            salary: job.salary || 'A convenir',
-            description: job.description.replace(/<[^>]*>?/gm, ' ').substring(0, 1000) + '...',
-            requirements: skills.length > 0 ? skills : ['General Operations'],
-            experience: 'Junior / Mid',
-            apply_url: job.url,
-            source: 'Remotive Live Feed'
-          };
-        });
-        allJobs = [...allJobs, ...parsedRemotive];
-        console.log(`[RMT-OS UNIV] Loaded ${parsedRemotive.length} live jobs from Remotive.`);
+    console.log(`[RMT-OS UNIV] Successfully scraped ${scrapedJobs.length} live jobs from Computrabajo.`);
+  } catch (error) {
+    console.error('[RMT-OS UNIV] Error during Computrabajo scraping:', error.message);
+  } finally {
+    if (browser) {
+      try {
+        await browser.close();
+      } catch (err) {
+        console.error('[RMT-OS UNIV] Error closing browser:', err.message);
       }
     }
-  } catch (error) {
-    console.error('[RMT-OS UNIV] Error fetching from Remotive API:', error.message);
   }
 
-  // 3. Fetch live remote jobs from Arbeitnow API
-  try {
-    console.log('[RMT-OS UNIV] Fetching live jobs from Arbeitnow...');
-    const arbeitnowUrl = 'https://www.arbeitnow.com/api/job-board-api';
-    const arbeitnowRes = await fetch(arbeitnowUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (RetroMatch OS Universal Edition)' }
-    });
+  // Combine jobs
+  allJobs = [...allJobs, ...scrapedJobs];
 
-    if (arbeitnowRes.ok) {
-      const data = await arbeitnowRes.json();
-      if (data && Array.isArray(data.data)) {
-        const parsedArbeitnow = data.data.slice(0, 20).map((job, idx) => {
-          const skills = extractSkills(job.description, job.tags);
-          return {
-            id: `arbeitnow-${idx}-${Date.now()}`,
-            title: job.title,
-            company: job.company_name,
-            location: job.location + (job.remote ? ' (Remote)' : ''),
-            salary: 'A convenir',
-            description: job.description.replace(/<[^>]*>?/gm, ' ').substring(0, 1000) + '...',
-            requirements: skills.length > 0 ? skills : ['General Operations'],
-            experience: 'Junior / Mid',
-            apply_url: job.url,
-            source: 'Arbeitnow Live Feed'
-          };
-        });
-        allJobs = [...allJobs, ...parsedArbeitnow];
-        console.log(`[RMT-OS UNIV] Loaded ${parsedArbeitnow.length} live jobs from Arbeitnow.`);
-      }
-    }
-  } catch (error) {
-    console.error('[RMT-OS UNIV] Error fetching from Arbeitnow API:', error.message);
-  }
-
-  // Filter jobs based on query if provided
+  // Filter jobs based on query if provided (only needed for local jobs since scraped ones are already queried)
   if (query) {
+    const lowerQuery = query.toLowerCase();
     allJobs = allJobs.filter(job => 
-      job.title.toLowerCase().includes(query) ||
-      job.company.toLowerCase().includes(query) ||
-      job.location.toLowerCase().includes(query) ||
-      job.requirements.some(reqSkill => reqSkill.toLowerCase().includes(query)) ||
-      job.description.toLowerCase().includes(query)
+      job.title.toLowerCase().includes(lowerQuery) ||
+      job.company.toLowerCase().includes(lowerQuery) ||
+      job.location.toLowerCase().includes(lowerQuery) ||
+      job.requirements.some(reqSkill => reqSkill.toLowerCase().includes(lowerQuery)) ||
+      job.description.toLowerCase().includes(lowerQuery)
     );
   }
 
@@ -178,41 +234,7 @@ app.get('/api/apply', async (req, res) => {
   if (!jobUrl) return res.status(400).json({ error: 'Missing url' });
 
   try {
-    const response = await fetch(jobUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
-    });
-    
-    if (!response.ok) {
-      return res.json({ apply_url: jobUrl });
-    }
-    
-    const html = await response.text();
-    let applyLink = null;
-
-    if (jobUrl.includes('remotive.com')) {
-      const atsRegex = /href="(https:\/\/(?:jobs\.ashbyhq\.com|boards\.greenhouse\.io|jobs\.lever\.co|apply\.workable\.com|[^"]+\.bamboohr\.com|apply\.workday\.com)[^"]*)"/i;
-      const atsMatch = html.match(atsRegex);
-      if (atsMatch) {
-        applyLink = atsMatch[1];
-      } else {
-        const buttonRegex = /<a[^>]*href="([^"]+)"[^>]*>\s*Apply for this position\s*<\/a>/i;
-        const btnMatch = html.match(buttonRegex);
-        if (btnMatch && !btnMatch[1].startsWith('/')) applyLink = btnMatch[1];
-      }
-    } else if (jobUrl.includes('arbeitnow.com')) {
-      const applyRegex = /href="(https:\/\/(?:[a-zA-Z0-9.-]+\.)?[a-zA-Z0-9.-]+\/[^"]*apply[^"]*)"/i;
-      const match = html.match(applyRegex);
-      if (match && !match[1].includes('arbeitnow.com')) {
-        applyLink = match[1];
-      }
-    }
-
-    if (applyLink) {
-      applyLink = applyLink.replace(/&amp;/g, '&');
-      res.json({ apply_url: applyLink });
-    } else {
-      res.json({ apply_url: jobUrl });
-    }
+    res.json({ apply_url: jobUrl });
   } catch (error) {
     console.error("[RMT-OS Scraper Error]", error.message);
     res.json({ apply_url: jobUrl });

@@ -866,9 +866,10 @@ class UniversalTerminalShell {
   }
 
   async cmdScan(query = "") {
-    this.printLine("[RMT-OS] INICIANDO ESCANEO DE PORTALES...", "system");
+    this.printLine("[RMT-OS] INICIANDO ESCANEO GLOBAL Y SCRAPER EN VIVO (PUPPETEER STEALTH)...", "system");
     await this.delay(300);
-    this.printLine("Conectando con bases de datos remotas y locales...");
+    this.printLine("[ATENCIÓN] La recolección de ofertas reales en Computrabajo puede demorar entre 10 y 25 segundos...", "warning");
+    this.printLine("Conectando con agregadores y evadiendo firewalls antibot...");
     
     const progressLine = this.printLine("BUSCANDO VACANTES: [░░░░░░░░░░░░░░░░░░░░] 0%");
     
