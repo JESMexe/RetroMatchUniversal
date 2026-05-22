@@ -494,7 +494,7 @@ body {
 .cursor {
   color: var(--theme-text);
   text-shadow: var(--theme-text-glow);
-  animation: blink 0.8s steps(2, start) infinite;
+  animation: blink 1s ease-in-out infinite;
   margin-left: 2px;
 }
 
@@ -769,5 +769,30 @@ body.dragging .drag-overlay {
   }
   .mobile-overlay {
     display: flex;
+  }
+}
+
+/* Custom Instruction Panel */
+.instruction-panel {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 220px;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px dashed var(--theme-border-dim);
+  border-radius: 8px;
+  color: var(--theme-text-dim);
+  font-family: 'Fira Code', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  pointer-events: none;
+  animation: turn-on 0.8s ease-out;
+}
+
+@media (max-width: 1400px) {
+  .instruction-panel {
+    display: none;
   }
 }

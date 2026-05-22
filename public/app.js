@@ -453,8 +453,8 @@ class UniversalTerminalShell {
     await this.delay(300);
 
     this.printLine("SYSTEM UNIVERSAL TERMINAL COMPLETED AND READY.", "system");
-    this.printLine("Drag & Drop your PDF CV onto screen to rank jobs for YOU!", "warning");
-    this.printLine("Type 'help' to review commands.", "system");
+    this.printLine("¡Arrastrá y soltá tu CV PDF en la pantalla para rankear las ofertas laborales para VOS!", "warning");
+    this.printLine("Escribí 'help' para ver los comandos.", "system");
     this.printLine("");
     
     this.isBooting = false;
@@ -902,7 +902,7 @@ class UniversalTerminalShell {
     } catch (err) {
       synth.playErrorBeep();
       this.printLine(`[ERROR] Conexión fallida con el servidor de la API: ${err.message}`, "error");
-      this.printLine("Asegúrate de que el servidor Node local esté corriendo (npm start) o que el host de internet sea accesible.", "warning");
+      this.printLine("Asegurate de que el servidor Node local esté corriendo (npm start) o que el host de internet sea accesible.", "warning");
     }
   }
 

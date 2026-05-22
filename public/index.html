@@ -36,7 +36,7 @@
   <div class="drag-overlay" id="drag-overlay">
     <div class="drag-box">
       <div class="drag-icon"><i class="ph ph-floppy-disk"></i></div>
-      <div class="drag-text">SOLTAR CV (PDF) PARA INSERTER DISQUETE A:</div>
+      <div class="drag-text">SOLTAR CV (PDF) PARA INSERTAR DISQUETE A:</div>
     </div>
   </div>
 
@@ -74,8 +74,8 @@
           <div class="bezel-hardware-panel">
             
             <!-- Dynamic Floppy Drive A: Interface -->
-            <div class="floppy-drive" id="floppy-drive-trigger" title="Haz clic para insertar tu disquete (CV en formato PDF)">
-              <div class="floppy-label">💾 FLOPPY DRIVE A: [ 3.5" HD ]</div>
+            <div class="floppy-drive" id="floppy-drive-trigger" title="Hacé clic para insertar tu disquete (CV en formato PDF)">
+              <div class="floppy-label">FLOPPY DRIVE A: [ 3.5" HD ]</div>
               <div class="floppy-slot-wrapper">
                 <div class="floppy-slot-dark">
                   <div class="floppy-shutter-flap" id="floppy-shutter"></div>
@@ -115,7 +115,7 @@
             <div class="terminal-prompt-line">
               <span class="prompt-text" id="prompt-label">jesm@rmt-os:~$</span>
               <div class="input-wrapper">
-                <input type="text" id="terminal-input" autocomplete="off" autofocus spellcheck="false" placeholder="Arrastrá tu CV PDF aquí o hacé clic en la disquetera de arriba para comenzar...">
+                <input type="text" id="terminal-input" autocomplete="off" autofocus spellcheck="false">
                 <span class="input-display" id="input-display"></span>
                 <span class="cursor" id="cursor">█</span>
               </div>
@@ -125,7 +125,7 @@
           
           <!-- Terminal Footer / Status Info -->
           <div class="terminal-footer">
-            <div class="footer-msg">Drag & Drop PDF CV onto screen or click FLOPPY DRIVE slot to import!</div>
+            <div class="footer-msg">Arrastrá y soltá tu CV PDF en la pantalla o hacé clic en la DISQUETERA para importar!</div>
             <div class="sound-indicator" id="sound-indicator">AUDIO: MUTED</div>
             <div class="time-display" id="time-display">23:05:00</div>
           </div>
@@ -137,6 +137,11 @@
     </div> <!-- End Bezel -->
     
   </div> <!-- End Case -->
+
+  <div class="instruction-panel">
+    <i class="ph ph-info" style="font-size: 24px; color: var(--theme-text); margin-bottom: 8px; display: block;"></i>
+    Arrastrá tu CV PDF acá o hacé clic en la disquetera para arrancar...
+  </div>
 
   <!-- Scripts -->
   <script src="app.js"></script>
