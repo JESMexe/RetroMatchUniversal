@@ -2,9 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
-const puppeteer = require('puppeteer-extra');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-puppeteer.use(StealthPlugin());
 const cheerio = require('cheerio');
 
 const app = express();
@@ -78,147 +75,128 @@ app.get('/api/jobs', async (req, res) => {
   const query = (req.query.q || '').trim();
   console.log(`[RMT-OS UNIV] Scan request received. Query: "${query}"`);
 
-  let allJobs = [];
+  let allJobs = []; // Restricting to live scraped results to avoid stale/mock LinkedIn & Indeed listings.
 
-  // 1. Read curated multi-industry local jobs DB
+  // Fetch live jobs from Computrabajo Argentina via standard fetch & cheerio
+  const searchQuery = query || 'tecnologia';
+  console.log(`[RMT-OS UNIV] Fetching live jobs from Computrabajo for "${searchQuery}"...`);
+  
+  const scrapedJobs = [];
   try {
-    const localData = fs.readFileSync(path.join(__dirname, 'jobs-feed.json'), 'utf8');
-    const localJobs = JSON.parse(localData);
-    allJobs = [...localJobs];
-  } catch (error) {
-    console.error('[RMT-OS UNIV] Error reading local jobs feed:', error.message);
-  }
+    // Fetch pages 1 and 2 in parallel for a richer pool of results
+    const urls = [
+      `https://ar.computrabajo.com/ofertas-de-trabajo/?q=${encodeURIComponent(searchQuery)}`,
+      `https://ar.computrabajo.com/ofertas-de-trabajo/?q=${encodeURIComponent(searchQuery)}&p=2`
+    ];
 
-  // 2. Fetch live jobs from Computrabajo Argentina via Puppeteer Stealth
-  let scrapedJobs = [];
-  let browser = null;
-  try {
-    const searchQuery = query || 'tecnologia';
-    console.log(`[RMT-OS UNIV] Launching Puppeteer Stealth to scrape Computrabajo for "${searchQuery}"...`);
-    
-    browser = await puppeteer.launch({
-      headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-    });
-
-    const page = await browser.newPage();
-    
-    // Set viewport & random user agent parameters to make sure it looks like a real browser
-    await page.setViewport({ width: 1280, height: 800 });
-    
-    const searchUrl = `https://ar.computrabajo.com/ofertas-de-trabajo/?q=${encodeURIComponent(searchQuery)}`;
-    console.log(`[RMT-OS UNIV] Navigating to: ${searchUrl}`);
-    
-    await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 30000 });
-    
-    // Wait for the job listings container to appear on the page
-    await page.waitForSelector('article.box_offer', { timeout: 15000 });
-    
-    const html = await page.content();
-    const $ = cheerio.load(html);
-    
-    $('article.box_offer').each((idx, element) => {
-      const dataId = $(element).attr('data-id') || `ct-${idx}-${Date.now()}`;
-      
-      const titleLink = $(element).find('h2.fs18.fwB.prB a.js-o-link');
-      const title = titleLink.text().trim();
-      let href = titleLink.attr('href') || '';
-      if (href && href.startsWith('/')) {
-        href = `https://ar.computrabajo.com${href}`;
-      }
-      
-      // Parse company name
-      let company = $(element).find('a[offer-grid-article-company-url]').text().trim();
-      if (!company) {
-        company = $(element).find('p.dFlex.vm_fx.fs16.fc_base.mt5 a.t_ellipsis').text().trim();
-      }
-      if (!company) {
-        const fullParaText = $(element).find('p.dFlex.vm_fx.fs16.fc_base.mt5').text().trim();
-        company = fullParaText.replace(/\d+,\d+/g, '').replace(/star/g, '').trim();
-      }
-      if (!company) {
-        company = 'Confidencial';
-      }
-      
-      // Parse location
-      const location = $(element).find('p.fs16.fc_base.mt5:not(.dFlex)').text().trim() || 'Argentina';
-      
-      // Parse work mode and salary
-      let workMode = 'Presencial';
-      let salary = 'A convenir';
-      
-      $(element).find('div.fs13.mt15 span.dIB').each((i, el) => {
-        const spanText = $(el).text().trim();
-        const hasHomeIcon = $(el).find('.i_home').length > 0;
-        const hasHygIcon = $(el).find('.i_home_office, .i_home_office_b').length > 0;
-        
-        if (spanText.includes('$')) {
-          salary = spanText;
-        } else if (hasHomeIcon || spanText.toLowerCase().includes('remoto')) {
-          workMode = 'Remoto';
-        } else if (hasHygIcon || spanText.toLowerCase().includes('remoto y presencial') || spanText.toLowerCase().includes('presencial y remoto') || spanText.toLowerCase().includes('hibrid') || spanText.toLowerCase().includes('híbrid')) {
-          workMode = 'Híbrido';
-        } else if (spanText.toLowerCase().includes('presencial')) {
-          workMode = 'Presencial';
+    const fetchPromises = urls.map(url =>
+      fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
         }
-      });
+      }).then(response => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.text();
+      })
+    );
+
+    const htmls = await Promise.all(fetchPromises);
+
+    htmls.forEach((html, pageIdx) => {
+      const $ = cheerio.load(html);
       
-      // Classify experience level
-      let experience = 'Junior / Mid';
-      const titleLower = title.toLowerCase();
-      if (titleLower.includes('senior') || titleLower.includes('sr') || titleLower.includes('lead') || titleLower.includes('ssr') || titleLower.includes('semi senior') || titleLower.includes('semisenior') || titleLower.includes('pleno')) {
-        experience = 'Senior';
-      } else if (titleLower.includes('junior') || titleLower.includes('jr') || titleLower.includes('trainee') || titleLower.includes('auxiliar') || titleLower.includes('practicante')) {
-        experience = 'Junior';
-      }
-      
-      // Synthesize overview summary (description)
-      const description = `Se busca ${title} para formar parte del equipo de ${company} en ${location}. Modalidad de trabajo: ${workMode}. Salario: ${salary}. Excelente oportunidad para profesionales que cuenten con habilidades técnicas y metodológicas acordes al perfil del puesto, promoviendo el crecimiento dentro de la organización.`;
-      
-      // Extract requirements skills
-      const skills = extractSkills(title + ' ' + description);
-      
-      scrapedJobs.push({
-        id: `computrabajo-${dataId}`,
-        title,
-        company,
-        location,
-        salary,
-        description,
-        requirements: skills.length > 0 ? skills : ['General Operations'],
-        experience,
-        apply_url: href,
-        source: 'Computrabajo'
+      $('article.box_offer').each((idx, element) => {
+        const dataId = $(element).attr('data-id') || `ct-${pageIdx}-${idx}-${Date.now()}`;
+        
+        const titleLink = $(element).find('h2.fs18.fwB.prB a.js-o-link, h2 a.js-o-link');
+        const title = titleLink.text().trim();
+        if (!title) return; // Skip if no title found (e.g. ads or layout boxes)
+
+        let href = titleLink.attr('href') || '';
+        if (href && href.startsWith('/')) {
+          href = `https://ar.computrabajo.com${href}`;
+        }
+        
+        // Parse company name
+        let company = $(element).find('a[offer-grid-article-company-url]').text().trim();
+        if (!company) {
+          company = $(element).find('p.dFlex.vm_fx.fs16.fc_base.mt5 a.t_ellipsis').text().trim();
+        }
+        if (!company) {
+          const fullParaText = $(element).find('p.dFlex.vm_fx.fs16.fc_base.mt5').text().trim();
+          company = fullParaText.replace(/\d+,\d+/g, '').replace(/star/g, '').trim();
+        }
+        if (!company) {
+          company = 'Confidencial';
+        }
+        
+        // Parse location
+        const location = $(element).find('p.fs16.fc_base.mt5:not(.dFlex)').text().trim() || 'Argentina';
+        
+        // Parse work mode and salary
+        let workMode = 'Presencial';
+        let salary = 'A convenir';
+        
+        $(element).find('div.fs13.mt15 span.dIB, span.dIB').each((i, el) => {
+          const spanText = $(el).text().trim();
+          const hasHomeIcon = $(el).find('.i_home').length > 0;
+          const hasHygIcon = $(el).find('.i_home_office, .i_home_office_b').length > 0;
+          
+          if (spanText.includes('$')) {
+            salary = spanText;
+          } else if (hasHomeIcon || spanText.toLowerCase().includes('remoto')) {
+            workMode = 'Remoto';
+          } else if (hasHygIcon || spanText.toLowerCase().includes('remoto y presencial') || spanText.toLowerCase().includes('presencial y remoto') || spanText.toLowerCase().includes('hibrid') || spanText.toLowerCase().includes('híbrid')) {
+            workMode = 'Híbrido';
+          } else if (spanText.toLowerCase().includes('presencial')) {
+            workMode = 'Presencial';
+          }
+        });
+        
+        // Classify experience level
+        let experience = 'Junior / Mid';
+        const titleLower = title.toLowerCase();
+        if (titleLower.includes('senior') || titleLower.includes('sr') || titleLower.includes('lead') || titleLower.includes('ssr') || titleLower.includes('semi senior') || titleLower.includes('semisenior') || titleLower.includes('pleno')) {
+          experience = 'Senior';
+        } else if (titleLower.includes('junior') || titleLower.includes('jr') || titleLower.includes('trainee') || titleLower.includes('auxiliar') || titleLower.includes('practicante')) {
+          experience = 'Junior';
+        }
+        
+        // Synthesize overview summary (description)
+        const description = `Se busca ${title} para formar parte del equipo de ${company} en ${location}. Modalidad de trabajo: ${workMode}. Salario: ${salary}. Excelente oportunidad para profesionales que cuenten con habilidades técnicas y metodológicas acordes al perfil del puesto, promoviendo el crecimiento dentro de la organización.`;
+        
+        // Extract requirements skills
+        const skills = extractSkills(title + ' ' + description);
+        
+        // Extract direct application link from Computrabajo bubble panel
+        let applyUrl = $(element).find('*[data-href-offer-apply]').attr('data-href-offer-apply') || href;
+        if (applyUrl && applyUrl.startsWith('/')) {
+          applyUrl = `https://ar.computrabajo.com${applyUrl}`;
+        }
+        
+        scrapedJobs.push({
+          id: `computrabajo-${dataId}`,
+          title,
+          company,
+          location,
+          salary,
+          description,
+          requirements: skills.length > 0 ? skills : ['General Operations'],
+          experience,
+          apply_url: applyUrl,
+          source: 'Computrabajo'
+        });
       });
     });
     
     console.log(`[RMT-OS UNIV] Successfully scraped ${scrapedJobs.length} live jobs from Computrabajo.`);
   } catch (error) {
     console.error('[RMT-OS UNIV] Error during Computrabajo scraping:', error.message);
-  } finally {
-    if (browser) {
-      try {
-        await browser.close();
-      } catch (err) {
-        console.error('[RMT-OS UNIV] Error closing browser:', err.message);
-      }
-    }
   }
 
-  // Combine jobs
-  allJobs = [...allJobs, ...scrapedJobs];
-
-  // Filter jobs based on query if provided (only needed for local jobs since scraped ones are already queried)
-  if (query) {
-    const lowerQuery = query.toLowerCase();
-    allJobs = allJobs.filter(job => 
-      job.title.toLowerCase().includes(lowerQuery) ||
-      job.company.toLowerCase().includes(lowerQuery) ||
-      job.location.toLowerCase().includes(lowerQuery) ||
-      job.requirements.some(reqSkill => reqSkill.toLowerCase().includes(lowerQuery)) ||
-      job.description.toLowerCase().includes(lowerQuery)
-    );
-  }
+  // Combine scraped jobs only
+  allJobs = [...scrapedJobs];
 
   res.json({
     status: 'success',
@@ -248,7 +226,7 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`\n=============================================================`);
-  console.log(`[SYSTEM] RetroMatch OS (v2.1.0 Universal Edition) Server Started.`);
+  console.log(`[SYSTEM] RetroMatch OS (v2.2.0 Universal Edition) Server Started.`);
   console.log(`[PORT]   Universal Port: http://localhost:${PORT}`);
   console.log(`=============================================================\n`);
 });

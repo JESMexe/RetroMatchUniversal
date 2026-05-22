@@ -1,5 +1,5 @@
 /**
- * RetroMatch OS - v2.1.0 (Universal Shell Engine)
+ * RetroMatch OS - v2.2.0 (Universal Shell Engine)
  * Engineered for Public Web Deployment & Dynamic PDF CV Extraction
  */
 
@@ -421,7 +421,7 @@ class UniversalTerminalShell {
     this.isBooting = true;
     this.input.disabled = true;
 
-    this.printLine("RETROMATCH(R) OS v2.1.0 (UNIVERSAL PUBLIC RELEASE)", "system");
+    this.printLine("RETROMATCH(R) OS v2.2.0 (UNIVERSAL PUBLIC RELEASE)", "system");
     await this.delay(350);
     this.printLine("MEMORY: 1048576 KB OK (DUAL CACHE ENABLED)");
     this.printLine("CPU: COGNITIVE AG-3600 @ 5.20GHz");
@@ -866,15 +866,15 @@ class UniversalTerminalShell {
   }
 
   async cmdScan(query = "") {
-    this.printLine("[RMT-OS] INICIANDO ESCANEO GLOBAL Y SCRAPER EN VIVO (PUPPETEER STEALTH)...", "system");
-    await this.delay(300);
-    this.printLine("[ATENCIÓN] La recolección de ofertas reales en Computrabajo puede demorar entre 10 y 25 segundos...", "warning");
-    this.printLine("Conectando con agregadores y evadiendo firewalls antibot...");
+    this.printLine("[RMT-OS] INICIANDO ESCANEO GLOBAL Y SCRAPER EN VIVO (FETCH/CHEERIO)...", "system");
+    await this.delay(200);
+    this.printLine("[INFO] La recolección de ofertas reales en Computrabajo se realiza en vivo...", "warning");
+    this.printLine("Conectando con Computrabajo Argentina...");
     
     const progressLine = this.printLine("BUSCANDO VACANTES: [░░░░░░░░░░░░░░░░░░░░] 0%");
     
     for (let p = 10; p <= 100; p += 15) {
-      await this.delay(180);
+      await this.delay(40);
       const capP = Math.min(p, 100);
       const filled = Math.round(capP / 5);
       const bar = "█".repeat(filled) + "░".repeat(20 - filled);
