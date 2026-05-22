@@ -1,0 +1,15 @@
+{
+  "name": "retromatch-universal",
+  "version": "2.0.0",
+  "description": "Retro terminal universal job aggregator and dynamic client-side PDF CV matcher",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  },
+  "author": "Joaquin Ezequiel Sosa Makara",
+  "license": "MIT"
+}

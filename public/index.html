@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RMT-OS v2.0.0 - Universal Retro Matcher</title>
+  
+  <!-- Retro Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=VT323&display=swap" rel="stylesheet">
+  
+  <!-- PDF.js CDN Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="theme-green">
+
+  <!-- Drag and Drop Active Overlay -->
+  <div class="drag-overlay" id="drag-overlay">
+    <div class="drag-box">
+      <div class="drag-icon">💾</div>
+      <div class="drag-text">SOLTAR CV (PDF) PARA INSERTER DISQUETE A:</div>
+    </div>
+  </div>
+
+  <!-- CRT Monitor Enclosure -->
+  <div class="crt-case">
+    
+    <!-- Screen Bezel Shadow/Depth -->
+    <div class="crt-bezel">
+      
+      <!-- Actual CRT Screen Screen Layer -->
+      <div class="crt-screen">
+        
+        <!-- CRT Effects (Scanlines, Curve, Flicker, Glare) -->
+        <div class="crt-scanlines"></div>
+        <div class="crt-flicker"></div>
+        <div class="crt-glare"></div>
+        
+        <!-- Terminal Container -->
+        <div class="terminal-container">
+          
+          <!-- Terminal Title bar / Header -->
+          <div class="terminal-header">
+            <div class="system-status">
+              <span class="status-dot blinking"></span>
+              <span class="system-title">RETROMATCH OS v2.0.0 UNIVERSAL</span>
+            </div>
+            <div class="session-info">
+              <span>PORT: 3001</span>
+              <span class="divider">|</span>
+              <span id="active-user-display">USER: JOAQUIN_SOSA</span>
+            </div>
+          </div>
+          
+          <!-- Interactive Floppy Disk Drive & Quick Controls (Hybrid GUI) -->
+          <div class="bezel-hardware-panel">
+            
+            <!-- Dynamic Floppy Drive A: Interface -->
+            <div class="floppy-drive" id="floppy-drive-trigger" title="Haz clic para insertar tu disquete (CV en formato PDF)">
+              <div class="floppy-label">💾 FLOPPY DRIVE A: [ 3.5" HD ]</div>
+              <div class="floppy-slot-wrapper">
+                <div class="floppy-slot-dark">
+                  <div class="floppy-shutter-flap" id="floppy-shutter"></div>
+                </div>
+                <div class="floppy-eject-btn"></div>
+              </div>
+              <div class="floppy-led-indicator">
+                <span class="led-label">BUSY</span>
+                <span class="floppy-led-light led-off" id="floppy-led"></span>
+              </div>
+              <!-- Hidden native file input -->
+              <input type="file" id="floppy-file-input" accept=".pdf" style="display: none;">
+            </div>
+
+            <!-- F-Key Command Center -->
+            <div class="quick-controls">
+              <button class="btn-ctrl" data-cmd="help">[F1: HELP]</button>
+              <button class="btn-ctrl" data-cmd="profile">[F2: DOCK PROFILE]</button>
+              <button class="btn-ctrl" data-cmd="scan">[F3: SCAN BOARDS]</button>
+              <button class="btn-ctrl" data-cmd="jobs">[F4: COMPAT. RANK]</button>
+              <button class="btn-ctrl" id="theme-toggle">[F5: SCREEN COLOR]</button>
+              <button class="btn-ctrl" id="audio-toggle">[F6: SOUNDS ON]</button>
+              <button class="btn-ctrl" data-cmd="profile reset">[F7: RESET SYS]</button>
+            </div>
+
+          </div>
+          
+          <!-- Terminal Main Window -->
+          <div class="terminal-body" id="terminal-body">
+            
+            <!-- Terminal Output Area -->
+            <div class="terminal-output" id="terminal-output">
+              <!-- Content dynamically injected here -->
+            </div>
+            
+            <!-- Active Input Prompt -->
+            <div class="terminal-prompt-line">
+              <span class="prompt-text" id="prompt-label">joaquin@rmt-os:~$</span>
+              <div class="input-wrapper">
+                <input type="text" id="terminal-input" autocomplete="off" autofocus spellcheck="false" placeholder="Arrastrá tu CV PDF aquí o hacé clic en la disquetera de arriba para comenzar...">
+                <span class="input-display" id="input-display"></span>
+                <span class="cursor" id="cursor">█</span>
+              </div>
+            </div>
+            
+          </div>
+          
+          <!-- Terminal Footer / Status Info -->
+          <div class="terminal-footer">
+            <div class="footer-msg">Drag & Drop PDF CV onto screen or click FLOPPY DRIVE slot to import!</div>
+            <div class="sound-indicator" id="sound-indicator">AUDIO: MUTED</div>
+            <div class="time-display" id="time-display">23:05:00</div>
+          </div>
+          
+        </div> <!-- End Terminal Container -->
+        
+      </div> <!-- End CRT Screen -->
+      
+    </div> <!-- End Bezel -->
+    
+  </div> <!-- End Case -->
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+</body>
+</html>

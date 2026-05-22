@@ -1,0 +1,122 @@
+[
+  {
+    "id": "univ-01",
+    "title": "Desarrollador Junior .NET / C#",
+    "company": "Accenture Argentina",
+    "location": "Buenos Aires, Argentina (Híbrido)",
+    "salary": "$900.000 - $1.200.000 ARS/mes",
+    "description": "Buscamos un Desarrollador .NET Junior para nuestro equipo. Participarás en el mantenimiento y optimización de endpoints bancarios, trabajando en C# y bases de datos Oracle SQL.",
+    "requirements": ["C#", ".NET", "Oracle SQL", "PL/SQL", "Git"],
+    "experience": "Junior",
+    "apply_url": "https://www.accenture.com/ar-es/careers",
+    "source": "Indeed Argentina"
+  },
+  {
+    "id": "univ-02",
+    "title": "Programador Backend Junior (Python)",
+    "company": "Mercado Libre",
+    "location": "Remoto (Argentina)",
+    "salary": "A convenir (Excelente)",
+    "description": "Buscamos desarrolladores backend con pasión por los desafíos. Python es nuestro motor principal junto con bases de datos relacionales SQL para resolver problemas complejos a escala.",
+    "requirements": ["Python", "SQL", "APIs REST", "Git", "Linux"],
+    "experience": "Junior",
+    "apply_url": "https://careers.mercadolibre.com/",
+    "source": "LinkedIn"
+  },
+  {
+    "id": "univ-03",
+    "title": "Diseñador Web y UI/UX Junior",
+    "company": "Aerolab",
+    "location": "Buenos Aires, Argentina (Híbrido)",
+    "salary": "$800.000 - $1.050.000 ARS/mes",
+    "description": "Buscamos un Diseñador UI/UX Junior con fuerte sentido estético e interés en maquetar y prototipar hermosas interfaces interactivas en Figma y suites de Adobe.",
+    "requirements": ["Figma", "Photoshop", "Illustrator", "HTML/CSS", "Framer"],
+    "experience": "Junior",
+    "apply_url": "https://aerolab.co/careers",
+    "source": "Aerolab Jobs"
+  },
+  {
+    "id": "univ-04",
+    "title": "Asistente Administrativo Contable Junior",
+    "company": "Consultora B&B",
+    "location": "San Miguel, Buenos Aires (Presencial)",
+    "salary": "$600.000 - $750.000 ARS/mes",
+    "description": "Buscamos incorporar un auxiliar administrativo. Tus tareas incluirán la carga de comprobantes, facturación, conciliaciones bancarias, contabilidad general y manejo avanzado de planillas de cálculo Excel.",
+    "requirements": ["Contabilidad", "Excel", "MS Office", "Windows"],
+    "experience": "Junior / Auxiliar",
+    "apply_url": "https://www.computrabajo.com.ar",
+    "source": "Computrabajo"
+  },
+  {
+    "id": "univ-05",
+    "title": "Analista de Facturación y Administración",
+    "company": "Swiss Medical Group",
+    "location": "Buenos Aires, Argentina (Híbrido)",
+    "salary": "A convenir (Bancario/Salud)",
+    "description": "Sumate a nuestro equipo administrativo. Serás responsable de la gestión de cobros, facturación electrónica, soporte al cliente, archivo digital y auditoría administrativa general.",
+    "requirements": ["Excel", "MS Office", "Windows", "Contabilidad"],
+    "experience": "Junior / Mid",
+    "apply_url": "https://www.swissmedical.com.ar",
+    "source": "Bolsa de Trabajo"
+  },
+  {
+    "id": "univ-06",
+    "title": "Junior Content Creator & Graphic Designer",
+    "company": "Agencia Creativa Mutante",
+    "location": "Remoto (Argentina)",
+    "salary": "$700.000 ARS/mes",
+    "description": "Buscamos un perfil creativo e ingenioso para el diseño gráfico de redes sociales, banners publicitarios y generación de contenido visual interactivo usando Canva, Photoshop e Illustrator.",
+    "requirements": ["Figma", "Photoshop", "Illustrator", "Canva Pro", "Blender"],
+    "experience": "Junior",
+    "apply_url": "https://www.linkedin.com",
+    "source": "LinkedIn"
+  },
+  {
+    "id": "univ-07",
+    "title": "Redactor de Contenidos & Copywriter Junior",
+    "company": "Media.Monks",
+    "location": "Remoto (Global)",
+    "salary": "A convenir (USD)",
+    "description": "Buscamos un Redactor Junior de contenidos para marcas globales. Te encargarás de escribir artículos de blog, textos publicitarios e email marketing. Excelente redacción técnica e inglés fluido son excluyentes.",
+    "requirements": ["English", "Inglés", "Redacción", "Escritura", "Excel"],
+    "experience": "Junior",
+    "apply_url": "https://media.monks.com/careers",
+    "source": "Get on Board"
+  },
+  {
+    "id": "univ-08",
+    "title": "Traductor Técnico Inglés - Español",
+    "company": "Babel Translation Services",
+    "location": "Remoto (Argentina)",
+    "salary": "$800.000 ARS/mes",
+    "description": "Buscamos un traductor egresado o estudiante avanzado para traducir documentación técnica, manuales de usuario y contratos legales del inglés al español.",
+    "requirements": ["English", "Inglés", "Traducción", "MS Office"],
+    "experience": "Junior / Mid",
+    "apply_url": "https://www.computrabajo.com.ar",
+    "source": "Computrabajo"
+  },
+  {
+    "id": "univ-09",
+    "title": "Diseñador de Modelos 3D y Motion Graphics",
+    "company": "Globant",
+    "location": "Buenos Aires, Argentina (Híbrido)",
+    "salary": "A convenir (Excelente)",
+    "description": "Buscamos un artista 3D Junior apasionado por el modelado y la animación. Utilizarás Blender y suites de Adobe para crear assets y animaciones integradas en experiencias interactivas y videojuegos.",
+    "requirements": ["Blender", "Photoshop", "Illustrator", "Figma"],
+    "experience": "Junior",
+    "apply_url": "https://www.globant.com/careers",
+    "source": "Globant Jobs"
+  },
+  {
+    "id": "univ-10",
+    "title": "Soporte Técnico Informático IT Junior",
+    "company": "Telecom Argentina",
+    "location": "Buenos Aires, Argentina (Híbrido)",
+    "salary": "A convenir (Excelente)",
+    "description": "Telecom busca un Soporte Técnico Junior para asistir a usuarios internos en hardware, instalación de sistemas operativos Windows/Linux, configuraciones de red y soporte general MS Office.",
+    "requirements": ["Windows", "Linux", "Excel", "MS Office", "Git"],
+    "experience": "Junior",
+    "apply_url": "https://institucional.telecom.com.ar/carreras",
+    "source": "Indeed Argentina"
+  }
+]
