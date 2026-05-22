@@ -179,7 +179,7 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`\n=============================================================`);
-  console.log(`🖥️  RetroMatch OS (v2.0.0 Universal Edition) Server Started.`);
-  console.log(`🔌 Universal Port: http://localhost:${PORT}`);
+  console.log(`[SYSTEM] RetroMatch OS (v2.0.0 Universal Edition) Server Started.`);
+  console.log(`[PORT]   Universal Port: http://localhost:${PORT}`);
   console.log(`=============================================================\n`);
 });

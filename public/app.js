@@ -13,10 +13,10 @@ const DEFAULT_PROFILE = {
   birthDate: "26/10/2004",
   title: "Desarrollador, Diseñador y Administrador Junior",
   location: "Muñiz, San Miguel, Buenos Aires, Argentina",
-  email: "joaquinezequielsm@gmail.com",
-  phone: "+54 9 11 6364-2040",
+  github: "https://github.com/JESMexe/",
+  linkedin: "www.linkedin.com/in/joaquín-ezequiel-sosa-makara",
   portfolio: "jesmdev.site",
-  summary: "¡Hola! Soy Joaquín, un apasionado programador con habilidades en diseño gráfico. Desde una temprana edad, me sumergí en el fascinante mundo del software y hardware, desde entonces no he dejado de explorar y aprender.",
+  summary: "Soy JESM, un Desarrollador Junior apasionado por la creación de soluciones innovadoras. Combino mi base técnica en software con habilidades de diseño, enfocándome siempre en entregar calidad, eficiencia y excelentes experiencias de usuario a mis clientes y equipos.",
   skills: {
     advanced: ["Python", "C#", ".NET", "Oracle SQL", "PL/SQL", "Windows", "MS Office"],
     intermediate: ["HTML", "CSS", "Figma", "Framer", "Photoshop", "Oracle Data Modeler", "SQL"],
@@ -268,6 +268,11 @@ class UniversalTerminalShell {
       this.toggleAudio();
     });
 
+    this.soundIndicator.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.toggleAudio();
+    });
+
     this.themeToggleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       this.toggleTheme();
@@ -464,8 +469,12 @@ class UniversalTerminalShell {
 
   loadProfileIntoSystem(profile) {
     USER_PROFILE = profile;
-    this.activeUserDisplay.textContent = `USER: ${profile.name.replace(/\s+/g, '_').toUpperCase()}`;
-    this.promptLabel.textContent = `${profile.name.split(' ')[0].toLowerCase()}@rmt-os:~$ `;
+    const isJesm = profile.name === "Joaquin Ezequiel Sosa Makara";
+    const userHandle = isJesm ? "JESM" : profile.name.replace(/\s+/g, '_').toUpperCase();
+    const promptName = isJesm ? "jesm" : profile.name.split(' ')[0].toLowerCase();
+    
+    this.activeUserDisplay.textContent = `USER: ${userHandle}`;
+    this.promptLabel.textContent = `${promptName}@rmt-os:~$ `;
   }
 
   delay(ms) {
@@ -571,7 +580,7 @@ class UniversalTerminalShell {
     
     // 1. Try to find a Name near the top
     let candidateName = "Candidato Anónimo";
-    const nameRegex = /^[A-ZÁÉÍÓÚÑa-záéíóúñ']+(\s+[A-ZÁÉÍÓÚÑa-záéíóúñ']+){1,3}$/;
+    const nameRegex = /^[A-ZÁÉÍÓÚÑa-záéíóúñ']+(\s+[A-ZÁÉÍÓÚÑa-záéíóúñ']+){1,5}$/i;
     
     // Check first 8 lines
     for (let i = 0; i < Math.min(lines.length, 8); i++) {
@@ -707,7 +716,11 @@ class UniversalTerminalShell {
 
   // INTERPRETER FOR COMMANDS
   async executeCommand(rawCommand) {
-    const parts = rawCommand.trim().split(/\s+/);
+    let cleanCommand = rawCommand.trim();
+    if (cleanCommand.startsWith('/')) {
+      cleanCommand = cleanCommand.substring(1).trim();
+    }
+    const parts = cleanCommand.split(/\s+/);
     const cmd = parts[0].toLowerCase();
     const args = parts.slice(1);
 
@@ -822,8 +835,10 @@ class UniversalTerminalShell {
           <span class="line highlight">Identificación</span>
           <div style="font-size:12px;">• Nombre: ${USER_PROFILE.name}</div>
           <div style="font-size:12px;">• Título: ${USER_PROFILE.title}</div>
-          <div style="font-size:12px;">• Email: ${USER_PROFILE.email}</div>
-          <div style="font-size:12px;">• Teléfono: ${USER_PROFILE.phone}</div>
+          ${USER_PROFILE.email ? `<div style="font-size:12px;">• Email: ${USER_PROFILE.email}</div>` : ''}
+          ${USER_PROFILE.phone ? `<div style="font-size:12px;">• Teléfono: ${USER_PROFILE.phone}</div>` : ''}
+          ${USER_PROFILE.linkedin ? `<div style="font-size:12px;">• LinkedIn: <a href="https://${USER_PROFILE.linkedin.replace('https://', '')}" target="_blank" style="color:inherit">${USER_PROFILE.linkedin}</a></div>` : ''}
+          ${USER_PROFILE.github ? `<div style="font-size:12px;">• GitHub: <a href="${USER_PROFILE.github}" target="_blank" style="color:inherit">${USER_PROFILE.github}</a></div>` : ''}
         </div>
         <div>
           <span class="line highlight">Metadatos del Disquete</span>
@@ -1031,10 +1046,10 @@ class UniversalTerminalShell {
       </div>
       
       <div style="font-size:12px; margin-bottom: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div>📁 Origen: <strong>${job.source}</strong></div>
-        <div>📍 Ubicación: <strong>${job.location}</strong></div>
-        <div>💰 Salario: <strong>${job.salary}</strong></div>
-        <div>⚡ Experiencia: <strong>${job.experience}</strong></div>
+        <div><i class="ph ph-folder" style="font-size: 14px; vertical-align: text-bottom;"></i> Origen: <strong>${job.source}</strong></div>
+        <div><i class="ph ph-map-pin" style="font-size: 14px; vertical-align: text-bottom;"></i> Ubicación: <strong>${job.location}</strong></div>
+        <div><i class="ph ph-coins" style="font-size: 14px; vertical-align: text-bottom;"></i> Salario: <strong>${job.salary}</strong></div>
+        <div><i class="ph ph-lightning" style="font-size: 14px; vertical-align: text-bottom;"></i> Experiencia: <strong>${job.experience}</strong></div>
       </div>
       
       <hr style="border:0; border-top: 1px dashed var(--theme-border-dim); margin-bottom: 8px;">

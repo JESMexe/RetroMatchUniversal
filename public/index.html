@@ -13,14 +13,29 @@
   <!-- PDF.js CDN Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="theme-green">
 
+  <!-- Mobile Blocker Overlay -->
+  <div class="mobile-overlay" id="mobile-overlay">
+    <div class="mobile-box">
+      <i class="ph ph-device-mobile-slash" style="font-size: 80px; color: var(--theme-error); margin-bottom: 20px;"></i>
+      <h2 style="font-family: 'VT323', monospace; font-size: 32px; margin-bottom: 15px; color: var(--theme-text);">SISTEMA INCOMPATIBLE</h2>
+      <p style="font-size: 14px; line-height: 1.5; color: var(--theme-text-dim);">
+        Lo lamentamos, pero este entorno de terminal no está optimizado para teléfonos móviles.<br><br>
+        Por favor, <strong>intenta acceder desde una PC de escritorio o laptop</strong> para vivir la experiencia completa.
+      </p>
+    </div>
+  </div>
+
   <!-- Drag and Drop Active Overlay -->
   <div class="drag-overlay" id="drag-overlay">
     <div class="drag-box">
-      <div class="drag-icon">💾</div>
+      <div class="drag-icon"><i class="ph ph-floppy-disk"></i></div>
       <div class="drag-text">SOLTAR CV (PDF) PARA INSERTER DISQUETE A:</div>
     </div>
   </div>
@@ -51,7 +66,7 @@
             <div class="session-info">
               <span>PORT: 3001</span>
               <span class="divider">|</span>
-              <span id="active-user-display">USER: JOAQUIN_SOSA</span>
+              <span id="active-user-display">USER: JESM</span>
             </div>
           </div>
           
@@ -98,7 +113,7 @@
             
             <!-- Active Input Prompt -->
             <div class="terminal-prompt-line">
-              <span class="prompt-text" id="prompt-label">joaquin@rmt-os:~$</span>
+              <span class="prompt-text" id="prompt-label">jesm@rmt-os:~$</span>
               <div class="input-wrapper">
                 <input type="text" id="terminal-input" autocomplete="off" autofocus spellcheck="false" placeholder="Arrastrá tu CV PDF aquí o hacé clic en la disquetera de arriba para comenzar...">
                 <span class="input-display" id="input-display"></span>
