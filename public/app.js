@@ -1,5 +1,5 @@
 /**
- * RetroMatch OS - v2.2.3 (Universal Shell Engine)
+ * RetroMatch OS - v2.2.4 (Universal Shell Engine)
  * Engineered for Public Web Deployment & Dynamic PDF CV Extraction
  */
 
@@ -421,7 +421,7 @@ class UniversalTerminalShell {
     this.isBooting = true;
     this.input.disabled = true;
 
-    this.printLine("RETROMATCH(R) OS v2.2.3 (UNIVERSAL PUBLIC RELEASE)", "system");
+    this.printLine("RETROMATCH(R) OS v2.2.4 (UNIVERSAL PUBLIC RELEASE)", "system");
     await this.delay(350);
     this.printLine("MEMORY: 1048576 KB OK (DUAL CACHE ENABLED)");
     this.printLine("CPU: COGNITIVE AG-3600 @ 5.20GHz");
@@ -750,6 +750,9 @@ class UniversalTerminalShell {
       case 'apply':
         this.cmdApply(args[0]);
         break;
+      case 'open':
+        this.cmdOpen(args[0]);
+        break;
       case 'theme':
         this.cmdTheme(args[0]);
         break;
@@ -804,7 +807,10 @@ class UniversalTerminalShell {
         <div class="line">Inspecciona un puesto viendo las habilidades faltantes/correctas.</div>
         
         <div class="help-cmd">apply [ID]</div>
-        <div class="line">Abre el enlace de postulación real en tu navegador local.</div>
+        <div class="line">Abre el enlace de postulación directa en tu navegador.</div>
+        
+        <div class="help-cmd">open [ID]</div>
+        <div class="line">Abre la publicación de trabajo original para ver el detalle completo.</div>
         
         <div class="help-cmd">theme [color]</div>
         <div class="line">Intercambia paletas de pantalla: green, amber, cyan, white.</div>
@@ -1082,8 +1088,9 @@ class UniversalTerminalShell {
         </p>
       </div>
       
-      <div style="text-align: right; margin-top: 10px;">
-        <button class="btn-ctrl" onclick="shell.executeCommand('apply ${job.displayId}')">[POSTULARSE DIRECTO EN PORTAL]</button>
+      <div style="text-align: right; margin-top: 10px; display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap;">
+        <button class="btn-ctrl" onclick="shell.executeCommand('open ${job.displayId}')">[VER PUBLICACIÓN COMPLETA]</button>
+        <button class="btn-ctrl" onclick="shell.executeCommand('apply ${job.displayId}')">[POSTULARSE DIRECTO]</button>
       </div>
     `;
     
@@ -1124,6 +1131,28 @@ class UniversalTerminalShell {
       this.printLine(`Redirigiendo al portal original: ${job.apply_url}`, "warning");
       window.open(job.apply_url, '_blank');
     }
+  }
+
+  cmdOpen(idStr) {
+    const id = parseInt(idStr);
+    if (isNaN(id)) {
+      synth.playErrorBeep();
+      this.printLine("ERR: Especifica un ID numérico correcto. Ej: 'open 1'.", "error");
+      return;
+    }
+
+    const job = this.jobsList.find(j => j.displayId === id);
+    if (!job) {
+      synth.playErrorBeep();
+      this.printLine(`ERR: El ID de puesto [${id}] no fue encontrado en memoria.`, "error");
+      return;
+    }
+
+    const targetUrl = job.job_url || job.apply_url;
+    this.printLine(`[RMT-OS] Abriendo publicación original en nueva pestaña...`, "system");
+    this.printLine(`${targetUrl}`);
+    synth.playChime(500, 750, 250);
+    window.open(targetUrl, '_blank');
   }
 
   cmdTheme(color) {

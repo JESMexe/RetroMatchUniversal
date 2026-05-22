@@ -191,6 +191,7 @@ app.get('/api/jobs', async (req, res) => {
           requirements: skills, // Return clean skills to allow client fallback to 50% match score
           experience,
           apply_url: applyUrl,
+          job_url: href,
           source: 'Computrabajo'
         });
       });
@@ -232,7 +233,7 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`\n=============================================================`);
-  console.log(`[SYSTEM] RetroMatch OS (v2.2.3 Universal Edition) Server Started.`);
+  console.log(`[SYSTEM] RetroMatch OS (v2.2.4 Universal Edition) Server Started.`);
   console.log(`[PORT]   Universal Port: http://localhost:${PORT}`);
   console.log(`=============================================================\n`);
 });
