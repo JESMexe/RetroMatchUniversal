@@ -1,5 +1,5 @@
 /**
- * RetroMatch OS - v2.2.1 (Universal Shell Engine)
+ * RetroMatch OS - v2.2.2 (Universal Shell Engine)
  * Engineered for Public Web Deployment & Dynamic PDF CV Extraction
  */
 
@@ -421,7 +421,7 @@ class UniversalTerminalShell {
     this.isBooting = true;
     this.input.disabled = true;
 
-    this.printLine("RETROMATCH(R) OS v2.2.1 (UNIVERSAL PUBLIC RELEASE)", "system");
+    this.printLine("RETROMATCH(R) OS v2.2.2 (UNIVERSAL PUBLIC RELEASE)", "system");
     await this.delay(350);
     this.printLine("MEMORY: 1048576 KB OK (DUAL CACHE ENABLED)");
     this.printLine("CPU: COGNITIVE AG-3600 @ 5.20GHz");
@@ -917,6 +917,7 @@ class UniversalTerminalShell {
     ].map(s => s.toLowerCase());
 
     return jobs.map((job, index) => {
+      job.displayId = index + 1;
       const jobReqs = (job.requirements || []).map(r => r.toLowerCase());
       
       if (jobReqs.length === 0) {
@@ -953,7 +954,6 @@ class UniversalTerminalShell {
       job.matchScore = score;
       job.matchingSkills = matching;
       job.missingSkills = missing;
-      job.displayId = index + 1;
 
       return job;
     }).sort((a, b) => b.matchScore - a.matchScore);

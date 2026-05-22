@@ -1,6 +1,6 @@
 {
   "name": "retromatch-universal",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "description": "Retro terminal universal job aggregator and dynamic client-side PDF CV matcher",
   "main": "server.js",
   "scripts": {

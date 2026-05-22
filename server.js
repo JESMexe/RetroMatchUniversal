@@ -232,7 +232,7 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`\n=============================================================`);
-  console.log(`[SYSTEM] RetroMatch OS (v2.2.1 Universal Edition) Server Started.`);
+  console.log(`[SYSTEM] RetroMatch OS (v2.2.2 Universal Edition) Server Started.`);
   console.log(`[PORT]   Universal Port: http://localhost:${PORT}`);
   console.log(`=============================================================\n`);
 });
