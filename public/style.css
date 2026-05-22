@@ -496,6 +496,11 @@ body {
   text-shadow: var(--theme-text-glow);
   animation: blink 1s ease-in-out infinite;
   margin-left: 2px;
+  visibility: hidden;
+}
+
+.input-wrapper input:focus ~ .cursor {
+  visibility: visible;
 }
 
 /* Terminal Footer */
