@@ -1090,7 +1090,7 @@ class UniversalTerminalShell {
     this.scrollToBottom();
   }
 
-  cmdApply(idStr) {
+  async cmdApply(idStr) {
     const id = parseInt(idStr);
     if (isNaN(id)) {
       synth.playErrorBeep();
@@ -1105,11 +1105,24 @@ class UniversalTerminalShell {
       return;
     }
 
-    this.printLine(`[RMT-OS] Abriendo canal seguro del navegador al portal externo...`, "system");
-    this.printLine(`Postulando en: ${job.apply_url}`);
+    this.printLine(`[RMT-OS] Interceptando ruta directa a la empresa a través del proxy...`, "system");
     
-    synth.playChime(600, 900, 300);
-    window.open(job.apply_url, '_blank');
+    try {
+      const baseUrl = this.getBackendBaseUrl();
+      const res = await fetch(`${baseUrl}/api/apply?url=${encodeURIComponent(job.apply_url)}`);
+      const data = await res.json();
+      
+      this.printLine(`¡Enlace directo extraído! Redirigiendo a:`, "system");
+      this.printLine(`${data.apply_url}`);
+      
+      synth.playChime(600, 900, 300);
+      window.open(data.apply_url, '_blank');
+    } catch (err) {
+      synth.playErrorBeep();
+      this.printLine(`[ERROR] Fallo al extraer el enlace: ${err.message}`, "error");
+      this.printLine(`Redirigiendo al portal original: ${job.apply_url}`, "warning");
+      window.open(job.apply_url, '_blank');
+    }
   }
 
   cmdTheme(color) {

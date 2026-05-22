@@ -172,6 +172,53 @@ app.get('/api/jobs', async (req, res) => {
   });
 });
 
+// Endpoint proxy para hacer scraping del link de postulación directa
+app.get('/api/apply', async (req, res) => {
+  const jobUrl = req.query.url;
+  if (!jobUrl) return res.status(400).json({ error: 'Missing url' });
+
+  try {
+    const response = await fetch(jobUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+    });
+    
+    if (!response.ok) {
+      return res.json({ apply_url: jobUrl });
+    }
+    
+    const html = await response.text();
+    let applyLink = null;
+
+    if (jobUrl.includes('remotive.com')) {
+      const atsRegex = /href="(https:\/\/(?:jobs\.ashbyhq\.com|boards\.greenhouse\.io|jobs\.lever\.co|apply\.workable\.com|[^"]+\.bamboohr\.com|apply\.workday\.com)[^"]*)"/i;
+      const atsMatch = html.match(atsRegex);
+      if (atsMatch) {
+        applyLink = atsMatch[1];
+      } else {
+        const buttonRegex = /<a[^>]*href="([^"]+)"[^>]*>\s*Apply for this position\s*<\/a>/i;
+        const btnMatch = html.match(buttonRegex);
+        if (btnMatch && !btnMatch[1].startsWith('/')) applyLink = btnMatch[1];
+      }
+    } else if (jobUrl.includes('arbeitnow.com')) {
+      const applyRegex = /href="(https:\/\/(?:[a-zA-Z0-9.-]+\.)?[a-zA-Z0-9.-]+\/[^"]*apply[^"]*)"/i;
+      const match = html.match(applyRegex);
+      if (match && !match[1].includes('arbeitnow.com')) {
+        applyLink = match[1];
+      }
+    }
+
+    if (applyLink) {
+      applyLink = applyLink.replace(/&amp;/g, '&');
+      res.json({ apply_url: applyLink });
+    } else {
+      res.json({ apply_url: jobUrl });
+    }
+  } catch (error) {
+    console.error("[RMT-OS Scraper Error]", error.message);
+    res.json({ apply_url: jobUrl });
+  }
+});
+
 // Serve the static frontend
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
