@@ -1,12 +1,5 @@
-/**
- * RetroMatch OS - v2.2.4 (Universal Shell Engine)
- * Engineered for Public Web Deployment & Dynamic PDF CV Extraction
- */
-
-// Configure PDF.js Worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-// 1. JOAQUIN SOSA'S DEFAULT PROFILE (SYSTEM SEED)
 const DEFAULT_PROFILE = {
   name: "Joaquin Ezequiel Sosa Makara",
   age: 21,
@@ -41,10 +34,8 @@ const DEFAULT_PROFILE = {
   ]
 };
 
-// Global Active Profile (Initialized to default)
 let USER_PROFILE = JSON.parse(JSON.stringify(DEFAULT_PROFILE));
 
-// 2. RETRO SOUND EFFECTS GENERATOR (Web Audio API)
 class AudioSynth {
   constructor() {
     this.ctx = null;
@@ -55,7 +46,7 @@ class AudioSynth {
     if (this.ctx) return;
     this.ctx = new (window.AudioContext || window.webkitAudioContext)();
     this.muted = false;
-    this.playChime(600, 800, 150); // Start-up beep
+    this.playChime(600, 800, 150);
   }
 
   playKeyClick(isSpecial = false) {
@@ -85,24 +76,21 @@ class AudioSynth {
     osc.stop(now + 0.06);
   }
 
-  // Synthesize realistic Floppy Drive reading/grinding noises
   async playFloppyDriveNoise(durationMs = 2500) {
     if (this.muted || !this.ctx) return;
 
     const startTime = this.ctx.currentTime;
     const stopTime = startTime + (durationMs / 1000);
 
-    // Create a whirring electric motor sound using a low-frequency oscillator
     const motorOsc = this.ctx.createOscillator();
     const motorGain = this.ctx.createGain();
     motorOsc.type = 'sawtooth';
-    motorOsc.frequency.setValueAtTime(45, startTime); // Low hum
+    motorOsc.frequency.setValueAtTime(45, startTime);
     
-    // Add LFO to modulate whirring
     const lfo = this.ctx.createOscillator();
     const lfoGain = this.ctx.createGain();
     lfo.type = 'sine';
-    lfo.frequency.setValueAtTime(12, startTime); // 12Hz whirring modulation
+    lfo.frequency.setValueAtTime(12, startTime);
     lfoGain.gain.setValueAtTime(8, startTime);
 
     lfo.connect(lfoGain);
@@ -111,7 +99,6 @@ class AudioSynth {
     motorGain.gain.setValueAtTime(0.08, startTime);
     motorGain.gain.linearRampToValueAtTime(0.001, stopTime);
 
-    // Filter to make it sound inside a plastic casing
     const motorFilter = this.ctx.createBiquadFilter();
     motorFilter.type = 'lowpass';
     motorFilter.frequency.setValueAtTime(180, startTime);
@@ -125,7 +112,6 @@ class AudioSynth {
     motorOsc.stop(stopTime);
     lfo.stop(stopTime);
 
-    // Synthesize "clack clack" stepper motor head seeks
     const clacksCount = Math.floor(durationMs / 300);
     for (let i = 0; i < clacksCount; i++) {
       const delayTime = i * 280 + Math.random() * 50;
@@ -135,7 +121,6 @@ class AudioSynth {
         if (this.muted || !this.ctx) return;
         const clackTime = this.ctx.currentTime;
         
-        // Single clack tap
         const clackOsc = this.ctx.createOscillator();
         const clackGain = this.ctx.createGain();
         const clackFilter = this.ctx.createBiquadFilter();
@@ -210,7 +195,6 @@ class AudioSynth {
 
 const synth = new AudioSynth();
 
-// 3. UNIVERSAL RETRO TERMINAL SHELL CONTROLLER
 class UniversalTerminalShell {
   constructor() {
     this.input = document.getElementById('terminal-input');
@@ -239,13 +223,11 @@ class UniversalTerminalShell {
   }
 
   init() {
-    // Clock
     setInterval(() => {
       const now = new Date();
       document.getElementById('time-display').textContent = now.toTimeString().split(' ')[0];
     }, 1000);
 
-    // Event listeners
     this.input.addEventListener('keydown', (e) => this.handleKeydown(e));
     this.input.addEventListener('input', () => {
       this.display.textContent = this.input.value;
@@ -254,7 +236,6 @@ class UniversalTerminalShell {
 
     this.body.addEventListener('click', () => this.input.focus());
 
-    // Toolbar buttons
     document.querySelectorAll('.quick-controls button[data-cmd]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -278,7 +259,6 @@ class UniversalTerminalShell {
       this.toggleTheme();
     });
 
-    // Floppy Drive triggers
     this.floppyDriveTrigger.addEventListener('click', (e) => {
       e.stopPropagation();
       this.floppyFileInput.click();
@@ -290,7 +270,6 @@ class UniversalTerminalShell {
       }
     });
 
-    // Drag and Drop files onto screen
     window.addEventListener('dragenter', (e) => {
       e.preventDefault();
       document.body.classList.add('dragging');
@@ -313,7 +292,6 @@ class UniversalTerminalShell {
       }
     });
 
-    // Boot Up
     this.runBootSequence();
   }
 
@@ -444,7 +422,6 @@ class UniversalTerminalShell {
     this.printLine("CONNECTING TO UNIVERSAL NODE BACKEND...");
     await this.delay(400);
     
-    // Check local port vs dynamic domain
     const backendUrl = this.getBackendBaseUrl();
     this.printLine(`GATEWAY ROUTE: ${backendUrl} [CONNECTING...]`);
     await this.delay(400);
@@ -463,7 +440,6 @@ class UniversalTerminalShell {
   }
 
   getBackendBaseUrl() {
-    // Relative routes if hosted statically/seamlessly on Render/Vercel, otherwise dev server
     return window.location.origin.includes('localhost') ? 'http://localhost:3001' : window.location.origin;
   }
 
@@ -481,7 +457,6 @@ class UniversalTerminalShell {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  // BROWSER-SIDE PDF EXTRACTOR AND STEPPER DRIVE SIMULATOR
   async readFloppyDisk(file) {
     if (this.isBooting) return;
     
@@ -494,7 +469,6 @@ class UniversalTerminalShell {
     this.isBooting = true;
     this.input.disabled = true;
 
-    // Trigger Floppy Animation
     document.getElementById('floppy-drive-trigger').classList.add('reading');
     this.floppyLed.className = "floppy-led-light led-reading";
     
@@ -521,7 +495,6 @@ class UniversalTerminalShell {
 
       this.loadProfileIntoSystem(newProfile);
 
-      // Successfully mounted!
       this.floppyLed.className = "floppy-led-light led-mounted";
       synth.playChime(500, 750, 300);
       
@@ -535,7 +508,6 @@ class UniversalTerminalShell {
       this.printLine("Escribe 'scan' para buscar vacantes reales para este perfil.", "system");
       this.printLine("");
 
-      // Automatically wipe jobs list because profile changed
       this.jobsList = [];
 
     } catch (err) {
@@ -559,7 +531,6 @@ class UniversalTerminalShell {
     });
   }
 
-  // Extracts PDF text client-side using PDF.js
   async extractTextFromPDF(arrayBuffer) {
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     let fullText = "";
@@ -574,34 +545,27 @@ class UniversalTerminalShell {
     return fullText;
   }
 
-  // SMART CV CLIENT-SIDE PARSER MULTI-INDUSTRY
   parseCVText(text) {
     const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
     
-    // 1. Try to find a Name near the top
     let candidateName = "Candidato Anónimo";
     const nameRegex = /^[A-ZÁÉÍÓÚÑa-záéíóúñ']+(\s+[A-ZÁÉÍÓÚÑa-záéíóúñ']+){1,5}$/i;
     
-    // Check first 8 lines
     for (let i = 0; i < Math.min(lines.length, 8); i++) {
       const cleaned = lines[i].replace(/[|•:\-*]/g, '').trim();
-      // Basic check: looks like a Capitalized name and is 2-4 words
       if (nameRegex.test(cleaned) && !cleaned.toLowerCase().includes('cv') && !cleaned.toLowerCase().includes('curriculum')) {
         candidateName = cleaned;
         break;
       }
     }
 
-    // 2. Extract Contact Info
     const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
     const email = emailMatch ? emailMatch[0] : "No identificado";
 
     const phoneMatch = text.match(/(?:\+?\d{1,3}[-.\s]?)?\(?\d{2,4}\)?[-.\s]?\d{3,5}[-.\s]?\d{3,5}/);
     const phone = phoneMatch ? phoneMatch[0] : "No identificado";
 
-    // 3. Multi-Industry Keyword Matcher dictionary
     const skillIndex = {
-      // Tech
       'Python': ['python', 'pandas', 'django', 'flask', 'fastapi'],
       'PHP': ['php', 'laravel', 'wordpress', 'symfony'],
       'C#': ['c#', '.net', 'csharp', 'asp.net', 'wpf', 'entity framework'],
@@ -618,7 +582,6 @@ class UniversalTerminalShell {
       'Java': ['java', 'spring', 'hibernate'],
       'APIs': ['apis', 'api', 'rest'],
       
-      // Design
       'Figma': ['figma'],
       'Framer': ['framer'],
       'Blender': ['blender', '3d modeling', 'render'],
@@ -627,13 +590,11 @@ class UniversalTerminalShell {
       'Canva': ['canva'],
       'UI/UX': ['ui/ux', 'ux/ui', 'product design', 'user interface'],
       
-      // Admin/Finance
       'Excel': ['excel', 'spreadsheets', 'planillas'],
       'Office': ['office', 'word', 'powerpoint'],
       'Contabilidad': ['contabilidad', 'contable', 'impuestos', 'balance', 'facturas'],
       'Facturación': ['facturación', 'cobros', 'administración'],
       
-      // Languages
       'English': ['english', 'inglés', 'bilingual', 'intermediate english', 'advanced english'],
       'Traducción': ['traducción', 'translation', 'translator', 'traductor'],
       'Redacción': ['redacción', 'escritura', 'copywriter', 'content writing']
@@ -642,7 +603,6 @@ class UniversalTerminalShell {
     const detectedSkills = [];
     const lowerText = text.toLowerCase();
 
-    // Scan the dictionary keywords against the CV text
     Object.keys(skillIndex).forEach(skill => {
       const matchWords = skillIndex[skill];
       const hasMatch = matchWords.some(word => lowerText.includes(word));
@@ -651,19 +611,16 @@ class UniversalTerminalShell {
       }
     });
 
-    // 4. Distribute into skill levels for display
     const advanced = [];
     const intermediate = [];
     const basicPlus = [];
     const designSuite = [];
 
     detectedSkills.forEach((s, idx) => {
-      // Split design suite skills
       if (['Figma', 'Framer', 'Blender', 'Photoshop', 'Illustrator', 'Canva'].includes(s)) {
         designSuite.push(s);
       }
       
-      // Distribute rest dynamically based on match indexing
       if (idx % 3 === 0) {
         advanced.push(s);
       } else if (idx % 3 === 1) {
@@ -673,7 +630,6 @@ class UniversalTerminalShell {
       }
     });
 
-    // If empty fallback
     if (advanced.length === 0 && intermediate.length === 0 && basicPlus.length === 0) {
       advanced.push("Administración", "Windows", "Excel");
       intermediate.push("Office", "Comunicación");
@@ -714,7 +670,6 @@ class UniversalTerminalShell {
     };
   }
 
-  // INTERPRETER FOR COMMANDS
   async executeCommand(rawCommand) {
     let cleanCommand = rawCommand.trim();
     if (cleanCommand.startsWith('/')) {
@@ -770,8 +725,6 @@ class UniversalTerminalShell {
         this.printLine(`ERR: Command '${cmd}' not recognized. Type 'help' for instructions.`, "error");
     }
   }
-
-  // --- CMD CALL IMPLEMENTATIONS ---
 
   cmdHelp() {
     this.printLine("┌────────────────────────────────────────────────────────┐", "system");
@@ -914,7 +867,6 @@ class UniversalTerminalShell {
   }
 
   processAndMatchJobs(jobs) {
-    // Collect all skills from the active uploaded user profile
     const mySkills = [
       ...USER_PROFILE.skills.advanced,
       ...USER_PROFILE.skills.intermediate,
@@ -954,7 +906,6 @@ class UniversalTerminalShell {
         }
       });
 
-      // Match Score logic
       const score = Math.round((matching.length / jobReqs.length) * 100);
 
       job.matchScore = score;
@@ -1242,7 +1193,6 @@ class UniversalTerminalShell {
   }
 }
 
-// Global hook
 const shell = new UniversalTerminalShell();
 window.shell = shell;
 

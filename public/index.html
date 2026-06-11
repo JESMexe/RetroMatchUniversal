@@ -6,34 +6,29 @@
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <title>RMT-OS v2.2.4 - Universal Retro Matcher</title>
   
-  <!-- Retro Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=VT323&display=swap" rel="stylesheet">
   
-  <!-- PDF.js CDN Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   
-  <!-- Phosphor Icons -->
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
   
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="theme-green">
 
-  <!-- Mobile Blocker Overlay -->
   <div class="mobile-overlay" id="mobile-overlay">
     <div class="mobile-box">
       <i class="ph ph-device-mobile-slash" style="font-size: 80px; color: var(--theme-error); margin-bottom: 20px;"></i>
       <h2 style="font-family: 'VT323', monospace; font-size: 32px; margin-bottom: 15px; color: var(--theme-text);">SISTEMA INCOMPATIBLE</h2>
       <p style="font-size: 14px; line-height: 1.5; color: var(--theme-text-dim);">
         Lo lamentamos, pero este entorno de terminal no está optimizado para teléfonos móviles.<br><br>
-        Por favor, <strong>intenta acceder desde una PC de escritorio o laptop</strong> para vivir la experiencia completa.
+        Por favor, <strong>intentá acceder desde una PC de escritorio o laptop</strong> para vivir la experiencia completa.
       </p>
     </div>
   </div>
 
-  <!-- Drag and Drop Active Overlay -->
   <div class="drag-overlay" id="drag-overlay">
     <div class="drag-box">
       <div class="drag-icon"><i class="ph ph-floppy-disk"></i></div>
@@ -41,24 +36,18 @@
     </div>
   </div>
 
-  <!-- CRT Monitor Enclosure -->
   <div class="crt-case">
     
-    <!-- Screen Bezel Shadow/Depth -->
     <div class="crt-bezel">
       
-      <!-- Actual CRT Screen Screen Layer -->
       <div class="crt-screen">
         
-        <!-- CRT Effects (Scanlines, Curve, Flicker, Glare) -->
         <div class="crt-scanlines"></div>
         <div class="crt-flicker"></div>
         <div class="crt-glare"></div>
         
-        <!-- Terminal Container -->
         <div class="terminal-container">
           
-          <!-- Terminal Title bar / Header -->
           <div class="terminal-header">
             <div class="system-status">
               <span class="status-dot blinking"></span>
@@ -71,10 +60,8 @@
             </div>
           </div>
           
-          <!-- Interactive Floppy Disk Drive & Quick Controls (Hybrid GUI) -->
           <div class="bezel-hardware-panel">
             
-            <!-- Dynamic Floppy Drive A: Interface -->
             <div class="floppy-drive" id="floppy-drive-trigger" title="Hacé clic para insertar tu disquete (CV en formato PDF)">
               <div class="floppy-label">FLOPPY DRIVE A:</div>
               <div class="floppy-slot-wrapper">
@@ -87,11 +74,9 @@
                 <span class="led-label">BUSY</span>
                 <span class="floppy-led-light led-off" id="floppy-led"></span>
               </div>
-              <!-- Hidden native file input -->
               <input type="file" id="floppy-file-input" accept=".pdf" style="display: none;">
             </div>
 
-            <!-- F-Key Command Center -->
             <div class="quick-controls">
               <button class="btn-ctrl" data-cmd="help">[F1: HELP]</button>
               <button class="btn-ctrl" data-cmd="profile">[F2: DOCK PROFILE]</button>
@@ -104,15 +89,11 @@
 
           </div>
           
-          <!-- Terminal Main Window -->
           <div class="terminal-body" id="terminal-body">
             
-            <!-- Terminal Output Area -->
             <div class="terminal-output" id="terminal-output">
-              <!-- Content dynamically injected here -->
             </div>
             
-            <!-- Active Input Prompt -->
             <div class="terminal-prompt-line">
               <span class="prompt-text" id="prompt-label">jesm@rmt-os:~$</span>
               <div class="input-wrapper">
@@ -124,27 +105,25 @@
             
           </div>
           
-          <!-- Terminal Footer / Status Info -->
           <div class="terminal-footer">
             <div class="footer-msg">Arrastrá y soltá tu CV PDF en la pantalla o hacé clic en la DISQUETERA para importar!</div>
             <div class="sound-indicator" id="sound-indicator">AUDIO: MUTED</div>
             <div class="time-display" id="time-display">23:05:00</div>
           </div>
           
-        </div> <!-- End Terminal Container -->
+        </div>
         
-      </div> <!-- End CRT Screen -->
+      </div>
       
-    </div> <!-- End Bezel -->
+    </div>
     
-  </div> <!-- End Case -->
+  </div>
 
   <div class="instruction-panel">
     <i class="ph ph-info" style="font-size: 24px; color: var(--theme-text); margin-bottom: 8px; display: block;"></i>
     Arrastrá tu CV PDF acá o hacé clic en la disquetera para arrancar...
   </div>
 
-  <!-- Scripts -->
   <script src="app.js"></script>
 </body>
 </html>

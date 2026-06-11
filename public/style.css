@@ -1,11 +1,8 @@
-/* RetroMatch OS Universal Style Sheet - v2.0.0 */
 :root {
-  /* CRT Base Colors */
   --bezel-color: #2b2b2b;
   --bezel-border: #151515;
   --screen-glare: radial-gradient(circle at 50% 15%, rgba(255, 255, 255, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
   
-  /* Theme Defaults (Green Phosphor P1) */
   --theme-bg: #000c02;
   --theme-text: #39ff14;
   --theme-text-dim: rgba(57, 255, 20, 0.65);
@@ -18,7 +15,6 @@
   --theme-error: #ff3333;
 }
 
-/* Theme Switching Overrides */
 .theme-green {
   --theme-bg: #000902;
   --theme-text: #39ff14;
@@ -63,7 +59,6 @@
   --theme-selection: rgba(240, 240, 240, 0.25);
 }
 
-/* Global Reset */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -83,7 +78,6 @@ body {
   position: relative;
 }
 
-/* CRT Monitor Case styling */
 .crt-case {
   background: #1e1e1e;
   border: 18px solid #282828;
@@ -101,7 +95,6 @@ body {
   display: flex;
 }
 
-/* Inner Bezel Shadow */
 .crt-bezel {
   background: var(--bezel-color);
   border: 4px solid var(--bezel-border);
@@ -118,7 +111,6 @@ body {
   position: relative;
 }
 
-/* CRT screen curved look */
 .crt-screen {
   background-color: var(--theme-bg);
   border-radius: 20px;
@@ -131,7 +123,6 @@ body {
   animation: turn-on 0.6s ease-out;
 }
 
-/* CRT Overlay Layers */
 .crt-scanlines {
   position: absolute;
   top: 0;
@@ -177,7 +168,6 @@ body {
   mix-blend-mode: screen;
 }
 
-/* Terminal layout core wrapper */
 .terminal-container {
   display: flex;
   flex-direction: column;
@@ -187,7 +177,6 @@ body {
   z-index: 5;
 }
 
-/* Terminal Header */
 .terminal-header {
   border-bottom: 2px solid var(--theme-border-dim);
   display: flex;
@@ -229,7 +218,6 @@ body {
   color: var(--theme-border-dim);
 }
 
-/* BEZEL HARDWARE HARDWARE INTERFACE (Floppy Drive & Controls) */
 .bezel-hardware-panel {
   display: flex;
   align-items: center;
@@ -242,7 +230,6 @@ body {
   gap: 20px;
 }
 
-/* Retro floppy drive layout */
 .floppy-drive {
   display: flex;
   align-items: center;
@@ -295,7 +282,6 @@ body {
   transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-/* Open shutter animation when reading file */
 .floppy-drive.reading .floppy-shutter-flap {
   transform: translateX(-40px);
 }
@@ -329,7 +315,6 @@ body {
   transition: all 0.2s ease;
 }
 
-/* LED Status colors */
 .led-off {
   background: #252525;
   box-shadow: none;
@@ -346,7 +331,6 @@ body {
   box-shadow: 0 0 10px var(--theme-text);
 }
 
-/* F-Key Controls inside header */
 .quick-controls {
   display: flex;
   align-items: center;
@@ -378,7 +362,6 @@ body {
   transform: translateY(1px);
 }
 
-/* Terminal Body Scrollable Area */
 .terminal-body {
   flex: 1;
   display: flex;
@@ -396,7 +379,6 @@ body {
   gap: 10px;
 }
 
-/* Custom retro scrollbar */
 .terminal-output::-webkit-scrollbar {
   width: 8px;
 }
@@ -415,7 +397,6 @@ body {
   background: var(--theme-border);
 }
 
-/* Lines / Typography in Terminal Output */
 .line {
   line-height: 1.4;
   word-wrap: break-word;
@@ -443,7 +424,6 @@ body {
   text-shadow: 0 0 5px var(--theme-error);
 }
 
-/* Input Prompt Area */
 .terminal-prompt-line {
   display: flex;
   align-items: center;
@@ -503,7 +483,6 @@ body {
   visibility: visible;
 }
 
-/* Terminal Footer */
 .terminal-footer {
   border-top: 2px solid var(--theme-border-dim);
   display: flex;
@@ -526,7 +505,6 @@ body {
   text-shadow: var(--theme-text-glow);
 }
 
-/* Retro UI Components (ASCII Boxes, Lists) */
 .ascii-box {
   border: 1px solid var(--theme-border-dim);
   padding: 10px 15px;
@@ -544,7 +522,6 @@ body {
   font-weight: 600;
 }
 
-/* Tables style */
 .ascii-table {
   width: 100%;
   border-collapse: collapse;
@@ -566,7 +543,6 @@ body {
   font-size: 13px;
 }
 
-/* Match Tag list */
 .match-tag {
   display: inline-block;
   padding: 2px 6px;
@@ -589,7 +565,6 @@ body {
   animation: slow-blink 2s infinite;
 }
 
-/* DRAG & DROP RETRO FLOOPY OVERLAY */
 .drag-overlay {
   display: none;
   position: absolute;
@@ -604,7 +579,6 @@ body {
   padding: 30px;
 }
 
-/* Show active overlay when dragging file */
 body.dragging .drag-overlay {
   display: flex;
 }
@@ -640,7 +614,6 @@ body.dragging .drag-overlay {
   text-align: center;
 }
 
-/* Animations */
 @keyframes turn-on {
   0% {
     transform: scaleY(0.01) scaleX(0);
@@ -738,7 +711,6 @@ body.dragging .drag-overlay {
   width: 0%;
 }
 
-/* MOBILE OVERLAY */
 .mobile-overlay {
   display: none;
   position: absolute;
@@ -777,7 +749,6 @@ body.dragging .drag-overlay {
   }
 }
 
-/* Custom Instruction Panel */
 .instruction-panel {
   position: absolute;
   right: 20px;

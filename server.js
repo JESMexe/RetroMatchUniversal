@@ -5,34 +5,26 @@ const path = require('path');
 const cheerio = require('cheerio');
 
 const app = express();
-const PORT = process.env.PORT || 3001; // Run on port 3001 to prevent conflicts
+const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
 
-// Serve static files from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Expanded skill keywords for a multi-industry universal matcher
 const SKILL_KEYWORDS = [
-  // 1. Tech & Engineering
   'Python', 'PHP', 'C#', '.NET', 'SQL', 'PL/SQL', 'Oracle', 
   'HTML', 'CSS', 'JavaScript', 'JS', 'Git', 'Linux', 'C++', 'C', 'Java', 'REST', 'APIs',
   
-  // 2. Creative & Design
   'Figma', 'Framer', 'Blender', 'Photoshop', 'Illustrator', 'Canva', 'UX', 'UI', 'Motion', 'DaVinci',
   
-  // 3. Administration & Business
   'Excel', 'Word', 'PowerPoint', 'Office', 'Contabilidad', 'Facturación', 'Administración', 'Administrativo', 'Cobros',
   
-  // 4. Marketing & Communication
   'Marketing', 'SEO', 'Redes Sociales', 'Social Media', 'Content', 'Publicidad',
   
-  // 5. Languages & Writing
   'English', 'Inglés', 'Redacción', 'Escritura', 'Traducción', 'Copywriter', 'Spanish', 'Español'
 ];
 
-// Helper to extract matching tags from text
 function extractSkills(text, tags = []) {
   const foundSkills = new Set();
   
@@ -58,7 +50,6 @@ function extractSkills(text, tags = []) {
     } else if (keyword === 'PL/SQL') {
       hasMatch = lowerText.includes('pl/sql') || lowerText.includes('plsql');
     } else {
-      // Use Unicode-aware lookarounds to prevent accents (like 'ó' in 'Córdoba') from acting as boundaries for single letters like 'C'
       const regex = new RegExp(`(?<![\\p{L}\\p{N}])${escaped.toLowerCase()}(?![\\p{L}\\p{N}])`, 'ui');
       hasMatch = regex.test(lowerText);
     }
@@ -71,20 +62,17 @@ function extractSkills(text, tags = []) {
   return Array.from(foundSkills);
 }
 
-// API endpoint to search/fetch jobs
 app.get('/api/jobs', async (req, res) => {
   const query = (req.query.q || '').trim();
   console.log(`[RMT-OS UNIV] Scan request received. Query: "${query}"`);
 
-  let allJobs = []; // Restricting to live scraped results to avoid stale/mock LinkedIn & Indeed listings.
+  let allJobs = [];
 
-  // Fetch live jobs from Computrabajo Argentina via standard fetch & cheerio
   const searchQuery = query || 'tecnologia';
   console.log(`[RMT-OS UNIV] Fetching live jobs from Computrabajo for "${searchQuery}"...`);
   
   const scrapedJobs = [];
   try {
-    // Fetch pages 1 and 2 in parallel for a richer pool of results
     const urls = [
       `https://ar.computrabajo.com/ofertas-de-trabajo/?q=${encodeURIComponent(searchQuery)}`,
       `https://ar.computrabajo.com/ofertas-de-trabajo/?q=${encodeURIComponent(searchQuery)}&p=2`
@@ -112,14 +100,13 @@ app.get('/api/jobs', async (req, res) => {
         
         const titleLink = $(element).find('h2.fs18.fwB.prB a.js-o-link, h2 a.js-o-link');
         const title = titleLink.text().trim();
-        if (!title) return; // Skip if no title found (e.g. ads or layout boxes)
+        if (!title) return;
 
         let href = titleLink.attr('href') || '';
         if (href && href.startsWith('/')) {
           href = `https://ar.computrabajo.com${href}`;
         }
         
-        // Parse company name
         let company = $(element).find('a[offer-grid-article-company-url]').text().trim();
         if (!company) {
           company = $(element).find('p.dFlex.vm_fx.fs16.fc_base.mt5 a.t_ellipsis').text().trim();
@@ -132,10 +119,8 @@ app.get('/api/jobs', async (req, res) => {
           company = 'Confidencial';
         }
         
-        // Parse location
         const location = $(element).find('p.fs16.fc_base.mt5:not(.dFlex)').text().trim() || 'Argentina';
         
-        // Parse work mode and salary
         let workMode = 'Presencial';
         let salary = 'A convenir';
         
@@ -155,7 +140,6 @@ app.get('/api/jobs', async (req, res) => {
           }
         });
         
-        // Classify experience level
         let experience = 'Junior / Mid';
         const titleLower = title.toLowerCase();
         if (titleLower.includes('senior') || titleLower.includes('sr') || titleLower.includes('lead') || titleLower.includes('ssr') || titleLower.includes('semi senior') || titleLower.includes('semisenior') || titleLower.includes('pleno')) {
@@ -164,20 +148,15 @@ app.get('/api/jobs', async (req, res) => {
           experience = 'Junior';
         }
         
-        // Synthesize overview summary (description)
         const description = `Se busca ${title} para formar parte del equipo de ${company} en ${location}. Modalidad de trabajo: ${workMode}. Salario: ${salary}. Excelente oportunidad para profesionales que cuenten con habilidades técnicas y metodológicas acordes al perfil del puesto, promoviendo el crecimiento dentro de la organización.`;
         
-        // Extract requirements skills
         const skills = extractSkills(title + ' ' + description);
         
-        // Extract direct application link from Computrabajo bubble panel
         let applyUrl = $(element).find('*[data-href-offer-apply]').attr('data-href-offer-apply') || href;
         if (applyUrl) {
           if (applyUrl.startsWith('/')) {
             applyUrl = `https://ar.computrabajo.com${applyUrl}`;
           }
-          // Normalize the apply URL by replacing '/candidate/apply/' with '/apply/' to prevent 404 errors.
-          // Also clean up HTML escaped characters.
           applyUrl = applyUrl.replace('/candidate/apply/', '/apply/').replace(/&amp;/g, '&');
         }
         
@@ -188,7 +167,7 @@ app.get('/api/jobs', async (req, res) => {
           location,
           salary,
           description,
-          requirements: skills, // Return clean skills to allow client fallback to 50% match score
+          requirements: skills,
           experience,
           apply_url: applyUrl,
           job_url: href,
@@ -202,7 +181,6 @@ app.get('/api/jobs', async (req, res) => {
     console.error('[RMT-OS UNIV] Error during Computrabajo scraping:', error.message);
   }
 
-  // Combine scraped jobs only
   allJobs = [...scrapedJobs];
 
   res.json({
@@ -213,7 +191,6 @@ app.get('/api/jobs', async (req, res) => {
   });
 });
 
-// Endpoint proxy para hacer scraping del link de postulación directa
 app.get('/api/apply', async (req, res) => {
   const jobUrl = req.query.url;
   if (!jobUrl) return res.status(400).json({ error: 'Missing url' });
@@ -226,7 +203,6 @@ app.get('/api/apply', async (req, res) => {
   }
 });
 
-// Serve the static frontend
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
