@@ -10,6 +10,7 @@ const DEFAULT_PROFILE = {
   linkedin: "www.linkedin.com/in/joaquín-ezequiel-sosa-makara",
   portfolio: "jesmdev.site",
   summary: "Soy JESM, un Desarrollador Junior apasionado por la creación de soluciones innovadoras. Combino mi base técnica en software con habilidades de diseño, enfocándome siempre en entregar calidad, eficiencia y excelentes experiencias de usuario a mis clientes y equipos.",
+  seniority: "Junior",
   skills: {
     advanced: ["Python", "C#", ".NET", "Oracle SQL", "PL/SQL", "Windows", "MS Office"],
     intermediate: ["HTML", "CSS", "Figma", "Framer", "Photoshop", "Oracle Data Modeler", "SQL"],
@@ -33,6 +34,29 @@ const DEFAULT_PROFILE = {
     }
   ]
 };
+
+// Mapa de aliases de seniority para búsqueda expandida
+const SENIORITY_ALIASES = {
+  'Trainee': ['trainee', 'pasante', 'practicante', 'intern'],
+  'Junior': ['junior', 'jr'],
+  'Semi-Senior': ['semi-senior', 'semisenior', 'semi senior', 'semi_senior', 'semiSenior', 'SemiSenior', 'ssr', 'SSR', 'sseniority', 'pleno'],
+  'Senior': ['senior', 'sr', 'lead', 'tech lead', 'techlead', 'sr.', 'ssr', 'SSR']
+};
+
+// Keywords para extraer del título cuando el servidor no detectó skills
+const TITLE_SKILL_KEYWORDS = [
+  'python', 'php', 'c#', '.net', 'sql', 'pl/sql', 'oracle',
+  'html', 'css', 'javascript', 'js', 'react', 'vue', 'angular', 'node', 'typescript',
+  'git', 'linux', 'c++', 'java', 'rest', 'apis', 'api',
+  'figma', 'framer', 'blender', 'photoshop', 'illustrator', 'canva', 'ux', 'ui',
+  'excel', 'word', 'powerpoint', 'office', 'contabilidad', 'administración',
+  'marketing', 'seo', 'english', 'inglés', 'redacción', 'diseño', 'diseñador',
+  'desarrollador', 'programador', 'backend', 'frontend', 'fullstack', 'full stack',
+  'devops', 'aws', 'azure', 'docker', 'kubernetes', 'mongodb', 'postgresql', 'mysql',
+  'spring', 'django', 'flask', 'laravel', 'wordpress', 'shopify',
+  'analista', 'soporte', 'helpdesk', 'redes', 'networking', 'seguridad',
+  'scrum', 'agile', 'jira', 'confluence', 'testing', 'qa', 'automation'
+];
 
 let USER_PROFILE = JSON.parse(JSON.stringify(DEFAULT_PROFILE));
 
@@ -720,6 +744,9 @@ class UniversalTerminalShell {
       case 'upload':
         this.floppyFileInput.click();
         break;
+      case 'skills':
+        this.cmdSkills(args);
+        break;
       default:
         synth.playErrorBeep();
         this.printLine(`ERR: Command '${cmd}' not recognized. Type 'help' for instructions.`, "error");
@@ -749,9 +776,21 @@ class UniversalTerminalShell {
         
         <div class="help-cmd">profile reset</div>
         <div class="line">Reinicia el sistema al perfil del seed de fábrica (Joaquín Sosa).</div>
+
+        <div class="help-cmd">skills</div>
+        <div class="line">Muestra y permite editar manualmente tus habilidades por categoría.</div>
+
+        <div class="help-cmd">skills add [cat] [skill]</div>
+        <div class="line">Agrega una habilidad. Categorías: advanced, intermediate, basic, design.</div>
+
+        <div class="help-cmd">skills remove [skill]</div>
+        <div class="line">Elimina una habilidad del perfil (busca en todas las categorías).</div>
+
+        <div class="help-cmd">skills seniority [nivel]</div>
+        <div class="line">Setea tu seniority: Trainee, Junior, Semi-Senior, Senior. Mejora la búsqueda de scan.</div>
         
         <div class="help-cmd">scan [query]</div>
-        <div class="line">Busca ofertas reales conectando al servidor local o de producción.</div>
+        <div class="line">Busca ofertas reales. Si tenés seniority seteado, lo expande automáticamente.</div>
         
         <div class="help-cmd">jobs [query]</div>
         <div class="line">Muestra el listado de coincidencias ranked por el Jaccard Index.</div>
@@ -780,11 +819,15 @@ class UniversalTerminalShell {
     const div = document.createElement('div');
     div.className = 'ascii-box';
     
+    const s = USER_PROFILE.skills;
+    const seniority = USER_PROFILE.seniority || 'No configurado';
+
     let skillsHTML = `
-      <div><span class="line system">Avanzadas:</span> ${USER_PROFILE.skills.advanced.join(', ')}</div>
-      <div><span class="line system">Intermedias:</span> ${USER_PROFILE.skills.intermediate.join(', ')}</div>
-      <div><span class="line system">Básicas:</span> ${USER_PROFILE.skills.basicPlus.join(', ')}</div>
-      ${USER_PROFILE.skills.designSuite.length > 0 ? `<div><span class="line system">Diseño/Edición:</span> ${USER_PROFILE.skills.designSuite.join(', ')}</div>` : ''}
+      <div><span class="line system">Avanzadas:</span> ${s.advanced.join(', ') || '<em style="opacity:0.5;">Vacía</em>'}</div>
+      <div><span class="line system">Intermedias:</span> ${s.intermediate.join(', ') || '<em style="opacity:0.5;">Vacía</em>'}</div>
+      <div><span class="line system">Básicas:</span> ${s.basicPlus.join(', ') || '<em style="opacity:0.5;">Vacía</em>'}</div>
+      ${s.designSuite.length > 0 ? `<div><span class="line system">Diseño/Edición:</span> ${s.designSuite.join(', ')}</div>` : ''}
+      <div style="margin-top:6px;"><span class="line system">Seniority:</span> <span class="match-tag matched" style="font-size:12px;">${seniority}</span> <span style="font-size:11px; color:var(--theme-text-dim);">— Editá con: skills seniority [nivel]</span></div>
     `;
 
     div.innerHTML = `
@@ -807,7 +850,7 @@ class UniversalTerminalShell {
       </div>
       <hr style="border: 0; border-top: 1px dashed var(--theme-border-dim); margin-bottom: 8px;">
       <div>
-        <span class="line highlight">Habilidades Mapeadas para Matches</span>
+        <span class="line highlight">Habilidades Mapeadas para Matches <span style="font-size:11px; font-weight:normal; opacity:0.7;">— Editá con: skills</span></span>
         ${skillsHTML}
       </div>
     `;
@@ -824,11 +867,51 @@ class UniversalTerminalShell {
     this.printLine("[RMT-OS] Memoria reseteada. Perfil de Joaquín Sosa cargado por defecto.", "system");
   }
 
+  getSeniorityAliases(seniority) {
+    if (!seniority) return [];
+    // Buscar case-insensitive en las keys del mapa
+    const key = Object.keys(SENIORITY_ALIASES).find(
+      k => k.toLowerCase() === seniority.toLowerCase()
+    );
+    return key ? SENIORITY_ALIASES[key] : [];
+  }
+
+  buildScanQuery(baseQuery) {
+    const seniority = USER_PROFILE.seniority;
+    const parts = [];
+
+    if (baseQuery && baseQuery.trim()) {
+      parts.push(baseQuery.trim());
+    }
+
+    if (seniority) {
+      // Agregar el seniority normalizado para que Computrabajo lo busque bien
+      const canonicalMap = {
+        'trainee': 'trainee',
+        'junior': 'junior',
+        'semi-senior': 'semi senior',
+        'senior': 'senior'
+      };
+      const key = Object.keys(canonicalMap).find(
+        k => k === seniority.toLowerCase()
+      );
+      if (key) parts.push(canonicalMap[key]);
+    }
+
+    return parts.join(' ');
+  }
+
   async cmdScan(query = "") {
     this.printLine("[RMT-OS] INICIANDO ESCANEO GLOBAL Y SCRAPER EN VIVO (FETCH/CHEERIO)...", "system");
     await this.delay(200);
     this.printLine("[INFO] La recolección de ofertas reales en Computrabajo se realiza en vivo...", "warning");
     this.printLine("Conectando con Computrabajo Argentina...");
+
+    // Informar seniority activo
+    if (USER_PROFILE.seniority) {
+      const aliases = this.getSeniorityAliases(USER_PROFILE.seniority);
+      this.printLine(`[SENIORITY] Nivel activo: ${USER_PROFILE.seniority} → buscando también: ${aliases.slice(0,4).join(', ')}...`, "system");
+    }
     
     const progressLine = this.printLine("BUSCANDO VACANTES: [░░░░░░░░░░░░░░░░░░░░] 0%");
     
@@ -842,7 +925,10 @@ class UniversalTerminalShell {
     
     try {
       const baseUrl = this.getBackendBaseUrl();
-      const url = query ? `${baseUrl}/api/jobs?q=${encodeURIComponent(query)}` : `${baseUrl}/api/jobs`;
+      const effectiveQuery = this.buildScanQuery(query);
+      const url = effectiveQuery
+        ? `${baseUrl}/api/jobs?q=${encodeURIComponent(effectiveQuery)}`
+        : `${baseUrl}/api/jobs`;
       const response = await fetch(url);
       
       if (!response.ok) {
@@ -866,6 +952,21 @@ class UniversalTerminalShell {
     }
   }
 
+  // Extrae keywords relevantes del título de un puesto para matching cuando el servidor no detectó requirements
+  extractKeywordsFromTitle(title) {
+    const lower = title.toLowerCase();
+    const found = new Set();
+    TITLE_SKILL_KEYWORDS.forEach(kw => {
+      // word-boundary simple: busca la keyword con espacios/inicio/fin alrededor
+      const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`(^|[\\s,/\\-])${escaped}([\\s,/\\-]|$)`, 'i');
+      if (regex.test(lower)) {
+        found.add(kw);
+      }
+    });
+    return Array.from(found);
+  }
+
   processAndMatchJobs(jobs) {
     const mySkills = [
       ...USER_PROFILE.skills.advanced,
@@ -874,46 +975,70 @@ class UniversalTerminalShell {
       ...USER_PROFILE.skills.designSuite
     ].map(s => s.toLowerCase());
 
+    // También incluir aliases de seniority del perfil para matching
+    const seniorityAliases = this.getSeniorityAliases(USER_PROFILE.seniority)
+      .map(a => a.toLowerCase());
+
     return jobs.map((job, index) => {
       job.displayId = index + 1;
-      const jobReqs = (job.requirements || []).map(r => r.toLowerCase());
+      let jobReqs = (job.requirements || []).map(r => r.toLowerCase());
       
+      // Fix bug 50%: si el servidor no detectó skills, intentar extraer del título
       if (jobReqs.length === 0) {
-        job.matchScore = 50;
-        job.matchingSkills = [];
-        job.missingSkills = [];
-        return job;
+        const titleKeywords = this.extractKeywordsFromTitle(job.title);
+        if (titleKeywords.length > 0) {
+          // Usar los keywords del título como requirements informales
+          jobReqs = titleKeywords;
+          job.requirements = titleKeywords; // también actualizar para que el view los muestre
+          job._reqsFromTitle = true; // marcar que vienen del título, no de la descripción
+        } else {
+          // Genuinamente sin datos técnicos detectables
+          job.matchScore = null;
+          job.matchingSkills = [];
+          job.missingSkills = [];
+          job._noReqs = true;
+          return job;
+        }
       }
 
       const matching = [];
       const missing = [];
 
       jobReqs.forEach(req => {
+        const reqLower = req.toLowerCase();
         const matched = mySkills.some(mySkill => {
-          if (mySkill === 'javascript' && req === 'js') return true;
-          if (mySkill === 'js' && req === 'javascript') return true;
-          if (mySkill === 'oracle sql' && req === 'sql') return true;
-          if (mySkill === 'pl/sql' && req === 'sql') return true;
-          return mySkill === req;
+          if (mySkill === 'javascript' && (reqLower === 'js' || reqLower === 'javascript')) return true;
+          if ((mySkill === 'js' || mySkill === 'javascript') && reqLower === 'javascript') return true;
+          if (mySkill === 'oracle sql' && reqLower === 'sql') return true;
+          if (mySkill === 'pl/sql' && reqLower === 'sql') return true;
+          if (mySkill === 'ms office' && (reqLower === 'office' || reqLower === 'excel' || reqLower === 'word')) return true;
+          return mySkill === reqLower;
         });
 
-        if (matched) {
-          const original = job.requirements.find(r => r.toLowerCase() === req);
-          matching.push(original);
+        // También considerar match si el req es del seniority del perfil
+        const seniorityMatch = seniorityAliases.some(alias => reqLower.includes(alias));
+
+        const displayReq = job.requirements.find(r => r.toLowerCase() === reqLower) || req;
+        if (matched || seniorityMatch) {
+          matching.push(displayReq);
         } else {
-          const original = job.requirements.find(r => r.toLowerCase() === req);
-          missing.push(original);
+          missing.push(displayReq);
         }
       });
 
-      const score = Math.round((matching.length / jobReqs.length) * 100);
+      const score = jobReqs.length > 0 ? Math.round((matching.length / jobReqs.length) * 100) : 0;
 
       job.matchScore = score;
       job.matchingSkills = matching;
       job.missingSkills = missing;
 
       return job;
-    }).sort((a, b) => b.matchScore - a.matchScore);
+    }).sort((a, b) => {
+      // Poner los sin datos al final
+      if (a.matchScore === null) return 1;
+      if (b.matchScore === null) return -1;
+      return b.matchScore - a.matchScore;
+    });
   }
 
   cmdJobs(queryFilter = "") {
@@ -928,7 +1053,7 @@ class UniversalTerminalShell {
       filtered = this.jobsList.filter(j => 
         j.title.toLowerCase().includes(queryFilter.toLowerCase()) ||
         j.company.toLowerCase().includes(queryFilter.toLowerCase()) ||
-        j.requirements.some(r => r.toLowerCase().includes(queryFilter.toLowerCase()))
+        (j.requirements || []).some(r => r.toLowerCase().includes(queryFilter.toLowerCase()))
       );
     }
 
@@ -948,19 +1073,20 @@ class UniversalTerminalShell {
           </tr>
         </thead>
         <tbody>
-          ${filtered.map(j => `
-            <tr>
-              <td>[${j.displayId}]</td>
-              <td class="line highlight" style="font-weight: 600;">${j.title}</td>
-              <td class="line system">${j.company}</td>
-              <td style="font-size: 11px;">${j.location}</td>
-              <td style="text-align: center;">
-                <span class="job-score" style="background-color:${this.getScoreColor(j.matchScore)}; color:#000;">
-                  ${j.matchScore}%
-                </span>
-              </td>
-            </tr>
-          `).join('')}
+          ${filtered.map(j => {
+            const scoreDisplay = j.matchScore === null
+              ? `<span class="job-score" style="background-color:var(--theme-border-dim); color:var(--theme-text-dim); font-size:10px;">N/A</span>`
+              : `<span class="job-score" style="background-color:${this.getScoreColor(j.matchScore)}; color:#000;">${j.matchScore}%</span>`;
+            return `
+              <tr>
+                <td>[${j.displayId}]</td>
+                <td class="line highlight" style="font-weight: 600;">${j.title}</td>
+                <td class="line system">${j.company}</td>
+                <td style="font-size: 11px;">${j.location}</td>
+                <td style="text-align: center;">${scoreDisplay}</td>
+              </tr>
+            `;
+          }).join('')}
         </tbody>
       </table>
     `;
@@ -974,6 +1100,7 @@ class UniversalTerminalShell {
     if (score >= 40) return "var(--theme-warning)";
     return "var(--theme-error)";
   }
+
 
   cmdView(idStr) {
     const id = parseInt(idStr);
@@ -993,8 +1120,54 @@ class UniversalTerminalShell {
     const div = document.createElement('div');
     div.className = 'ascii-box';
     
-    const matchingHTML = job.matchingSkills.map(s => `<span class="match-tag matched">${s}</span>`).join('');
-    const missingHTML = job.missingSkills.map(s => `<span class="match-tag missing">${s}</span>`).join('');
+    const matchingHTML = (job.matchingSkills || []).map(s => `<span class="match-tag matched">${s}</span>`).join('');
+    const missingHTML = (job.missingSkills || []).map(s => `<span class="match-tag missing">${s}</span>`).join('');
+
+    // Bloque de compatibilidad según el tipo de análisis disponible
+    let compatibilityHTML;
+    if (job._noReqs) {
+      // Sin datos técnicos detectables en el scraping
+      compatibilityHTML = `
+        <span class="line highlight">Análisis de Compatibilidad:</span>
+        <div style="margin: 6px 0; display: flex; align-items: center; gap: 10px;">
+          <span class="job-score" style="font-size:14px; background-color: var(--theme-warning); color:#000;">N/A</span>
+          <span style="font-size:12px; color:var(--theme-text-dim);">Sin datos técnicos scrapeables en este anuncio.</span>
+        </div>
+        <div style="margin-top: 8px; font-size:12px; color: var(--theme-text-dim);">
+          ⚠ No se pudieron detectar requisitos técnicos desde el título o la descripción del puesto.<br>
+          Usá <strong>open ${job.displayId}</strong> para ver la publicación completa y analizar manualmente.
+        </div>
+      `;
+    } else {
+      const scoreColor = this.getScoreColor(job.matchScore);
+      const scoreLabel = job._reqsFromTitle
+        ? `${job.matchScore}% Match <span style="font-size:10px; opacity:0.7;">(keywords del título)</span>`
+        : `${job.matchScore}% Match`;
+
+      const matchedBlock = matchingHTML
+        ? matchingHTML
+        : '<span style="color:var(--theme-text-dim); font-size:12px;">Ninguna de tus habilidades coincide con los requisitos detectados.</span>';
+
+      const missingBlock = missingHTML
+        ? missingHTML
+        : '<span style="color:var(--theme-text); font-size:12px;">✓ ¡Cubrís todos los requisitos técnicos detectados para postularte!</span>';
+
+      compatibilityHTML = `
+        <span class="line highlight">Análisis de Compatibilidad:</span>
+        <div style="margin: 6px 0; display: flex; align-items: center; gap: 10px;">
+          <span class="job-score" style="font-size:14px; background-color:${scoreColor}; color:#000;">${scoreLabel}</span>
+          <span style="font-size:12px; color:var(--theme-text-dim);">Comparado contra el disquete A:</span>
+        </div>
+        <div style="margin-top: 8px;">
+          <div style="font-size:11px; margin-bottom: 4px;">REQUISITOS CUMPLIDOS (Habilidades que tenés):</div>
+          ${matchedBlock}
+        </div>
+        <div style="margin-top: 8px;">
+          <div style="font-size:11px; margin-bottom: 4px;">REQUISITOS NO DETECTADOS (Faltantes en disquete):</div>
+          ${missingBlock}
+        </div>
+      `;
+    }
 
     div.innerHTML = `
       <div class="ascii-box-header">ANALIZADOR DE REQUISITOS: PUESTO [${job.displayId}]</div>
@@ -1013,21 +1186,7 @@ class UniversalTerminalShell {
       <hr style="border:0; border-top: 1px dashed var(--theme-border-dim); margin-bottom: 8px;">
       
       <div style="margin-bottom: 12px;">
-        <span class="line highlight">Análisis de Compatibilidad:</span>
-        <div style="margin: 6px 0; display: flex; align-items: center; gap: 10px;">
-          <span class="job-score" style="font-size:14px; background-color:${this.getScoreColor(job.matchScore)}; color:#000;">
-            ${job.matchScore}% Match
-          </span>
-          <span style="font-size:12px; color:var(--theme-text-dim);">Comparado contra el disquete A:</span>
-        </div>
-        <div style="margin-top: 8px;">
-          <div style="font-size:11px; margin-bottom: 2px;">REQUISITOS CUMPLIDOS (Habilidades que tenés):</div>
-          ${matchingHTML || '<span style="color:var(--theme-text-dim); font-size:12px;">Ninguna coincidencia en disquete.</span>'}
-        </div>
-        <div style="margin-top: 8px;">
-          <div style="font-size:11px; margin-bottom: 2px;">REQUISITOS NO DETECTADOS (Faltantes en disquete):</div>
-          ${missingHTML || '<span style="color:var(--theme-text); font-size:12px;">¡Tenés todo lo requerido para postularte!</span>'}
-        </div>
+        ${compatibilityHTML}
       </div>
 
       <hr style="border:0; border-top: 1px dashed var(--theme-border-dim); margin-bottom: 8px;">
@@ -1040,14 +1199,188 @@ class UniversalTerminalShell {
       </div>
       
       <div style="text-align: right; margin-top: 10px; display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap;">
-        <button class="btn-ctrl" onclick="shell.executeCommand('open ${job.displayId}')">[VER PUBLICACIÓN COMPLETA]</button>
-        <button class="btn-ctrl" onclick="shell.executeCommand('apply ${job.displayId}')">[POSTULARSE DIRECTO]</button>
+        <button class="btn-ctrl" onclick="shell.executeCommand('open ${job.displayId}')"> [VER PUBLICACIÓN COMPLETA]</button>
+        <button class="btn-ctrl" onclick="shell.executeCommand('apply ${job.displayId}')"> [POSTULARSE DIRECTO]</button>
       </div>
     `;
     
     this.output.appendChild(div);
     this.scrollToBottom();
   }
+
+  cmdSkills(args) {
+    const sub = (args[0] || '').toLowerCase();
+
+    if (sub === 'add') {
+      // skills add [categoria] [skill1 skill2...]
+      const catArg = (args[1] || '').toLowerCase();
+      const catMap = {
+        'advanced': 'advanced', 'avanzado': 'advanced', 'avanzadas': 'advanced',
+        'intermediate': 'intermediate', 'intermedio': 'intermediate', 'intermedias': 'intermediate',
+        'basic': 'basicPlus', 'basico': 'basicPlus', 'basicas': 'basicPlus', 'basicplus': 'basicPlus',
+        'design': 'designSuite', 'diseño': 'designSuite', 'diseno': 'designSuite'
+      };
+      const cat = catMap[catArg];
+      if (!cat) {
+        synth.playErrorBeep();
+        this.printLine(`ERR: Categoría inválida. Usa: advanced, intermediate, basic, design`, "error");
+        return;
+      }
+      const skillToAdd = args.slice(2).join(' ').trim();
+      if (!skillToAdd) {
+        synth.playErrorBeep();
+        this.printLine(`ERR: Especificá la habilidad. Ej: skills add advanced Python`, "error");
+        return;
+      }
+      // Verificar si ya existe (case-insensitive)
+      const allSkills = [
+        ...USER_PROFILE.skills.advanced,
+        ...USER_PROFILE.skills.intermediate,
+        ...USER_PROFILE.skills.basicPlus,
+        ...USER_PROFILE.skills.designSuite
+      ];
+      if (allSkills.some(s => s.toLowerCase() === skillToAdd.toLowerCase())) {
+        this.printLine(`[WARN] "${skillToAdd}" ya existe en el perfil.`, "warning");
+        return;
+      }
+      USER_PROFILE.skills[cat].push(skillToAdd);
+      const catNames = { advanced: 'Avanzadas', intermediate: 'Intermedias', basicPlus: 'Básicas', designSuite: 'Diseño/Edición' };
+      synth.playChime(500, 700, 200);
+      this.printLine(`[OK] "${skillToAdd}" agregada a ${catNames[cat]}.`, "system");
+      return;
+    }
+
+    if (sub === 'remove' || sub === 'rm' || sub === 'del') {
+      const skillToRemove = args.slice(1).join(' ').trim();
+      if (!skillToRemove) {
+        synth.playErrorBeep();
+        this.printLine(`ERR: Especificá la habilidad a eliminar. Ej: skills remove Figma`, "error");
+        return;
+      }
+      const cats = ['advanced', 'intermediate', 'basicPlus', 'designSuite'];
+      let removed = false;
+      cats.forEach(cat => {
+        const idx = USER_PROFILE.skills[cat].findIndex(s => s.toLowerCase() === skillToRemove.toLowerCase());
+        if (idx !== -1) {
+          USER_PROFILE.skills[cat].splice(idx, 1);
+          removed = true;
+        }
+      });
+      if (removed) {
+        synth.playChime(400, 300, 200);
+        this.printLine(`[OK] "${skillToRemove}" eliminada del perfil.`, "system");
+      } else {
+        synth.playErrorBeep();
+        this.printLine(`ERR: "${skillToRemove}" no fue encontrada en el perfil.`, "error");
+      }
+      return;
+    }
+
+    if (sub === 'seniority') {
+      const levelArg = args.slice(1).join(' ').trim();
+      if (!levelArg) {
+        const current = USER_PROFILE.seniority || 'No configurado';
+        this.printLine(`[SENIORITY] Nivel actual: ${current}`, "system");
+        this.printLine(`Niveles disponibles: Trainee, Junior, Semi-Senior, Senior`, "warning");
+        this.printLine(`Uso: skills seniority Junior`, "warning");
+        return;
+      }
+      // Encontrar el nivel canónico
+      const canonical = Object.keys(SENIORITY_ALIASES).find(
+        k => {
+          if (k.toLowerCase() === levelArg.toLowerCase()) return true;
+          return SENIORITY_ALIASES[k].some(alias => alias.toLowerCase() === levelArg.toLowerCase());
+        }
+      );
+      if (!canonical) {
+        synth.playErrorBeep();
+        this.printLine(`ERR: Nivel desconocido. Opciones: Trainee, Junior, Semi-Senior, Senior`, "error");
+        return;
+      }
+      USER_PROFILE.seniority = canonical;
+      const aliases = SENIORITY_ALIASES[canonical];
+      synth.playChime(500, 800, 250);
+      this.printLine(`[OK] Seniority seteado: ${canonical}`, "system");
+      this.printLine(`[INFO] Al hacer 'scan', se buscará con: ${aliases.join(', ')}`, "warning");
+      return;
+    }
+
+    // Sin subcomando: mostrar panel de habilidades con instrucciones de edición
+    const s = USER_PROFILE.skills;
+    const seniority = USER_PROFILE.seniority || 'No configurado';
+    const seniorityAliases = this.getSeniorityAliases(USER_PROFILE.seniority);
+
+    const div = document.createElement('div');
+    div.className = 'ascii-box';
+    div.innerHTML = `
+      <div class="ascii-box-header">EDITOR DE HABILIDADES DEL DISQUETE A:</div>
+      <div style="font-size:11px; color:var(--theme-text-dim); margin-bottom:10px;">
+        Comandos: &nbsp;
+        <strong>skills add [cat] [habilidad]</strong> &nbsp;|&nbsp;
+        <strong>skills remove [habilidad]</strong> &nbsp;|&nbsp;
+        <strong>skills seniority [nivel]</strong>
+      </div>
+
+      <div style="margin-bottom:10px;">
+        <div style="font-size:11px; margin-bottom:4px;" class="line highlight">▸ SENIORITY (Keyword de búsqueda):</div>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <span class="match-tag matched" style="font-size:13px;">${seniority}</span>
+          ${seniorityAliases.length > 0
+            ? `<span style="font-size:11px; color:var(--theme-text-dim);">→ aliases: ${seniorityAliases.join(', ')}</span>`
+            : `<span style="font-size:11px; color:var(--theme-text-dim);">Usá: skills seniority [Trainee/Junior/Semi-Senior/Senior]</span>`
+          }
+        </div>
+      </div>
+
+      <hr style="border:0; border-top:1px dashed var(--theme-border-dim); margin:8px 0;">
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+        <div>
+          <div style="font-size:11px; margin-bottom:4px;" class="line highlight">▸ AVANZADAS <span style="opacity:0.6;">(cat: advanced)</span></div>
+          <div style="display:flex; flex-wrap:wrap; gap:4px;">
+            ${s.advanced.length > 0
+              ? s.advanced.map(sk => `<span class="match-tag matched">${sk}</span>`).join('')
+              : '<span style="color:var(--theme-text-dim);font-size:12px;">Vacía</span>'}
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px; margin-bottom:4px;" class="line highlight">▸ INTERMEDIAS <span style="opacity:0.6;">(cat: intermediate)</span></div>
+          <div style="display:flex; flex-wrap:wrap; gap:4px;">
+            ${s.intermediate.length > 0
+              ? s.intermediate.map(sk => `<span class="match-tag matched" style="opacity:0.85;">${sk}</span>`).join('')
+              : '<span style="color:var(--theme-text-dim);font-size:12px;">Vacía</span>'}
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px; margin-bottom:4px;" class="line highlight">▸ BÁSICAS <span style="opacity:0.6;">(cat: basic)</span></div>
+          <div style="display:flex; flex-wrap:wrap; gap:4px;">
+            ${s.basicPlus.length > 0
+              ? s.basicPlus.map(sk => `<span class="match-tag missing" style="opacity:0.85;">${sk}</span>`).join('')
+              : '<span style="color:var(--theme-text-dim);font-size:12px;">Vacía</span>'}
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px; margin-bottom:4px;" class="line highlight">▸ DISEÑO/EDICIÓN <span style="opacity:0.6;">(cat: design)</span></div>
+          <div style="display:flex; flex-wrap:wrap; gap:4px;">
+            ${s.designSuite.length > 0
+              ? s.designSuite.map(sk => `<span class="match-tag" style="background:var(--theme-system);color:var(--theme-bg);">${sk}</span>`).join('')
+              : '<span style="color:var(--theme-text-dim);font-size:12px;">Vacía</span>'}
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:10px; font-size:11px; color:var(--theme-text-dim);"> 
+        Total de habilidades: ${s.advanced.length + s.intermediate.length + s.basicPlus.length + s.designSuite.length}
+        &nbsp;|&nbsp; Ejemplos de uso:
+        <br>→ <strong>skills add advanced React</strong>
+        <br>→ <strong>skills remove VBA</strong>
+        <br>→ <strong>skills seniority Semi-Senior</strong>
+      </div>
+    `;
+    this.output.appendChild(div);
+    this.scrollToBottom();
+  }
+
 
   async cmdApply(idStr) {
     const id = parseInt(idStr);
