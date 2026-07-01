@@ -756,7 +756,13 @@ class UniversalTerminalShell {
         }
         break;
       case 'scan':
-        await this.cmdScan(args.join(' '));
+        // Soporte para: scan skills [keywords]
+        if (args[0] && args[0].toLowerCase() === 'skills') {
+          const skillQuery = args.slice(1).join(' ').trim();
+          await this.cmdScanSkills(skillQuery);
+        } else {
+          await this.cmdScan(args.join(' '));
+        }
         break;
       case 'jobs':
         this.cmdJobs(args[0]);
@@ -828,7 +834,10 @@ class UniversalTerminalShell {
         <div class="line">Setea tu seniority: Trainee, Junior, Semi-Senior, Senior. Mejora la búsqueda de scan.</div>
         
         <div class="help-cmd">scan [query]</div>
-        <div class="line">Busca ofertas reales. Si tenés seniority seteado, lo expande automáticamente.</div>
+        <div class="line">Busca ofertas reales según query. El seniority filtra los resultados automáticamente (no modifica la búsqueda).</div>
+        
+        <div class="help-cmd">scan skills [keyword]</div>
+        <div class="line">Modo keyword: busca específico por skill/rol. Tokeniza y lanza múltiples búsquedas. Ej: scan skills C# .NET</div>
         
         <div class="help-cmd">jobs [query]</div>
         <div class="line">Muestra el listado de coincidencias ranked por el Jaccard Index.</div>
@@ -915,7 +924,9 @@ class UniversalTerminalShell {
   }
 
   buildScanQuery(baseQuery, forcedSkills = null) {
-    const seniority = USER_PROFILE.seniority;
+    // NOTA: El seniority NO se agrega a la query de búsqueda del servidor.
+    // Computrabajo busca texto libre y mezcla resultados si ponemos "Python junior".
+    // El seniority se filtra solo client-side en processAndMatchJobs().
     const parts = [];
 
     if (baseQuery && baseQuery.trim()) {
@@ -927,19 +938,6 @@ class UniversalTerminalShell {
       // Sin query manual: usar la primera skill avanzada del perfil para resultados relevantes
       const topSkill = USER_PROFILE.skills.advanced[0];
       if (topSkill) parts.push(topSkill);
-    }
-
-    if (seniority) {
-      const canonicalMap = {
-        'trainee': 'trainee',
-        'junior': 'junior',
-        'semi-senior': 'semi senior',
-        'senior': 'senior'
-      };
-      const key = Object.keys(canonicalMap).find(
-        k => k === seniority.toLowerCase()
-      );
-      if (key) parts.push(canonicalMap[key]);
     }
 
     return parts.join(' ');
@@ -1022,6 +1020,91 @@ class UniversalTerminalShell {
       synth.playErrorBeep();
       this.printLine(`[ERROR] Conexión fallida con el servidor de la API: ${err.message}`, "error");
       this.printLine("Asegurate de que el servidor Node local esté corriendo (npm start) o que el host de internet sea accesible.", "warning");
+    }
+  }
+
+  // Modo de búsqueda por keywords específicas: scan skills [query]
+  // Tokeniza el query, busca cada parte por separado y combina los resultados.
+  async cmdScanSkills(rawQuery) {
+    if (!rawQuery) {
+      synth.playErrorBeep();
+      this.printLine(`ERR: Especificá una keyword. Ej: scan skills C# .NET`, "error");
+      this.printLine(`Otros ejemplos: scan skills Python | scan skills Contabilidad | scan skills Accounting`, "warning");
+      return;
+    }
+
+    // Generar lista de queries a buscar:
+    // 1. El query completo tal cual (ej: "C# .NET")
+    // 2. Cada token por separado (ej: "C#", ".NET")
+    // Deduplicar para evitar búsquedas repetidas
+    const tokens = rawQuery.split(/[\s,]+/).map(t => t.trim()).filter(t => t.length > 0);
+    const queries = [...new Set([rawQuery, ...tokens])];
+
+    this.printLine(``, "");
+    this.printLine(`┌────────────────────────────────────────────────────────┐`, "system");
+    this.printLine(`│  🔍 MODO SKILL-SCAN: BÚSQUEDA POR KEYWORDS            │`, "system");
+    this.printLine(`└────────────────────────────────────────────────────────┘`, "system");
+    this.printLine(`[SKILL-SCAN] Keywords detectadas: ${queries.map(q => `"${q}"`).join(', ')}`, "system");
+    if (USER_PROFILE.seniority) {
+      this.printLine(`[SENIORITY] Nivel activo: ${USER_PROFILE.seniority} (filtrado client-side)`, "system");
+    }
+    await this.delay(200);
+
+    const allJobsMap = new Map(); // key: job.id → deduplicar
+    const baseUrl = this.getBackendBaseUrl();
+
+    for (let i = 0; i < queries.length; i++) {
+      const q = queries[i];
+      this.printLine(`[${i + 1}/${queries.length}] Buscando: "${q}"...`, "warning");
+      
+      const progressLine = this.printLine(`  PROGRESO: [░░░░░░░░░░░░░░░░░░░░] 0%`);
+      for (let p = 10; p <= 100; p += 20) {
+        await this.delay(35);
+        const capP = Math.min(p, 100);
+        const filled = Math.round(capP / 5);
+        const bar = "█".repeat(filled) + "░".repeat(20 - filled);
+        progressLine.textContent = `  PROGRESO: [${bar}] ${capP}%`;
+      }
+
+      try {
+        const url = `${baseUrl}/api/jobs?q=${encodeURIComponent(q)}`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+
+        if (data && Array.isArray(data.jobs)) {
+          data.jobs.forEach(job => {
+            if (!allJobsMap.has(job.id)) {
+              allJobsMap.set(job.id, job);
+            }
+          });
+          this.printLine(`  → ${data.jobs.length} ofertas encontradas (total acumulado: ${allJobsMap.size})`, "system");
+        }
+      } catch (err) {
+        this.printLine(`  ⚠ Error buscando "${q}": ${err.message}`, "error");
+      }
+
+      if (i < queries.length - 1) await this.delay(400); // pausa entre requests
+    }
+
+    if (allJobsMap.size === 0) {
+      synth.playErrorBeep();
+      this.printLine(`[SKILL-SCAN] Sin resultados para ninguna de las keywords.`, "error");
+      return;
+    }
+
+    // Procesar y rankear todos los jobs acumulados
+    const allJobs = Array.from(allJobsMap.values());
+    this.jobsList = this.processAndMatchJobs(allJobs);
+
+    synth.playChime(400, 700, 300);
+    const goodCount = this.jobsList.filter(j => j.matchScore !== null && j.matchScore > 0).length;
+    this.printLine(`──────────────────────────────────────────────────────`, "system");
+    this.printLine(`[SKILL-SCAN COMPLETO] ${this.jobsList.length} ofertas únicas • ${goodCount} con compatibilidad >0%`, "system");
+    if (goodCount === 0) {
+      this.printLine(`⚠ Ninguna con compatibilidad detectable. Verificá tus skills con 'skills'.`, "warning");
+    } else {
+      this.printLine(`Escribí 'jobs' para ver el ranking de compatibilidad.`, "warning");
     }
   }
 
