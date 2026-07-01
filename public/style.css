@@ -475,11 +475,13 @@ body {
   color: var(--theme-text);
   text-shadow: var(--theme-text-glow);
   animation: blink 1s ease-in-out infinite;
-  margin-left: 2px;
+  margin-left: 0;
   visibility: hidden;
+  display: inline;
 }
 
-.input-wrapper input:focus ~ .cursor {
+/* El cursor se hace visible vía JS añadiendo clase al wrapper */
+.input-wrapper.has-focus .cursor {
   visibility: visible;
 }
 

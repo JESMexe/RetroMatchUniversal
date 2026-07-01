@@ -254,11 +254,29 @@ class UniversalTerminalShell {
 
     this.input.addEventListener('keydown', (e) => this.handleKeydown(e));
     this.input.addEventListener('input', () => {
-      this.display.textContent = this.input.value;
+      this.updateDisplay();
       synth.playKeyClick(false);
+    });
+    // Actualizar posición del cursor cuando se mueve con teclas o mouse
+    this.input.addEventListener('keyup', () => this.updateCursorPos());
+    this.input.addEventListener('click', () => this.updateCursorPos());
+    this.input.addEventListener('select', () => this.updateCursorPos());
+    document.addEventListener('selectionchange', () => {
+      if (document.activeElement === this.input) this.updateCursorPos();
+    });
+
+    // Controlar visibilidad del cursor con has-focus en el wrapper
+    const inputWrapper = this.input.closest('.input-wrapper');
+    this.input.addEventListener('focus', () => {
+      if (inputWrapper) inputWrapper.classList.add('has-focus');
+      this.updateDisplay();
+    });
+    this.input.addEventListener('blur', () => {
+      if (inputWrapper) inputWrapper.classList.remove('has-focus');
     });
 
     this.body.addEventListener('click', () => this.input.focus());
+
 
     document.querySelectorAll('.quick-controls button[data-cmd]').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -352,6 +370,29 @@ class UniversalTerminalShell {
     this.printLine(`[RMT-OS] Theme shifted to: ${themeNames[newTheme]}`, "system");
   }
 
+  updateDisplay() {
+    const val = this.input.value;
+    const pos = this.input.selectionStart ?? val.length;
+    const before = val.slice(0, pos);
+    const after = val.slice(pos);
+    // Limpiar el display y componer: texto-antes + cursor + texto-después
+    this.display.innerHTML = '';
+    const spanBefore = document.createElement('span');
+    spanBefore.textContent = before;
+    this.display.appendChild(spanBefore);
+    // El cursor real del span#cursor ya está en el DOM; movemos el display alrededor de él
+    const cursorEl = document.getElementById('cursor');
+    if (cursorEl) this.display.appendChild(cursorEl);
+    const spanAfter = document.createElement('span');
+    spanAfter.textContent = after;
+    this.display.appendChild(spanAfter);
+  }
+
+  updateCursorPos() {
+    // Solo re-renderizar posición sin sonido
+    this.updateDisplay();
+  }
+
   printLine(text, className = "") {
     const p = document.createElement('div');
     p.className = `line ${className}`;
@@ -387,7 +428,7 @@ class UniversalTerminalShell {
     if (e.key === 'Enter') {
       const command = this.input.value.trim();
       this.input.value = "";
-      this.display.textContent = "";
+      this.updateDisplay();
       
       if (command) {
         this.cmdHistory.push(command);
@@ -402,7 +443,7 @@ class UniversalTerminalShell {
       if (this.historyIdx > 0) {
         this.historyIdx--;
         this.input.value = this.cmdHistory[this.historyIdx];
-        this.display.textContent = this.input.value;
+        this.updateDisplay();
         synth.playKeyClick(false);
       }
     } else if (e.key === 'ArrowDown') {
@@ -414,7 +455,7 @@ class UniversalTerminalShell {
         this.historyIdx = this.cmdHistory.length;
         this.input.value = "";
       }
-      this.display.textContent = this.input.value;
+      this.updateDisplay();
       synth.playKeyClick(false);
     }
   }
@@ -1212,7 +1253,7 @@ class UniversalTerminalShell {
     const sub = (args[0] || '').toLowerCase();
 
     if (sub === 'add') {
-      // skills add [categoria] [skill1 skill2...]
+      // skills add [categoria] skill1, skill2, skill3...
       const catArg = (args[1] || '').toLowerCase();
       const catMap = {
         'advanced': 'advanced', 'avanzado': 'advanced', 'avanzadas': 'advanced',
@@ -1226,52 +1267,72 @@ class UniversalTerminalShell {
         this.printLine(`ERR: Categoría inválida. Usa: advanced, intermediate, basic, design`, "error");
         return;
       }
-      const skillToAdd = args.slice(2).join(' ').trim();
-      if (!skillToAdd) {
+      const rawSkills = args.slice(2).join(' ');
+      if (!rawSkills.trim()) {
         synth.playErrorBeep();
-        this.printLine(`ERR: Especificá la habilidad. Ej: skills add advanced Python`, "error");
+        this.printLine(`ERR: Especificá la habilidad. Ej: skills add advanced Python, React, Node`, "error");
         return;
       }
-      // Verificar si ya existe (case-insensitive)
-      const allSkills = [
-        ...USER_PROFILE.skills.advanced,
-        ...USER_PROFILE.skills.intermediate,
-        ...USER_PROFILE.skills.basicPlus,
-        ...USER_PROFILE.skills.designSuite
-      ];
-      if (allSkills.some(s => s.toLowerCase() === skillToAdd.toLowerCase())) {
-        this.printLine(`[WARN] "${skillToAdd}" ya existe en el perfil.`, "warning");
-        return;
-      }
-      USER_PROFILE.skills[cat].push(skillToAdd);
+      // Splittear por coma y limpiar espacios
+      const skillsToAdd = rawSkills.split(',').map(s => s.trim()).filter(s => s.length > 0);
       const catNames = { advanced: 'Avanzadas', intermediate: 'Intermedias', basicPlus: 'Básicas', designSuite: 'Diseño/Edición' };
-      synth.playChime(500, 700, 200);
-      this.printLine(`[OK] "${skillToAdd}" agregada a ${catNames[cat]}.`, "system");
+      const added = [];
+      const skipped = [];
+      skillsToAdd.forEach(skillName => {
+        const allSkills = [
+          ...USER_PROFILE.skills.advanced,
+          ...USER_PROFILE.skills.intermediate,
+          ...USER_PROFILE.skills.basicPlus,
+          ...USER_PROFILE.skills.designSuite
+        ];
+        if (allSkills.some(s => s.toLowerCase() === skillName.toLowerCase())) {
+          skipped.push(skillName);
+        } else {
+          USER_PROFILE.skills[cat].push(skillName);
+          added.push(skillName);
+        }
+      });
+      if (added.length > 0) {
+        synth.playChime(500, 700, 200);
+        this.printLine(`[OK] Agregadas a ${catNames[cat]}: ${added.join(', ')}`, "system");
+      }
+      if (skipped.length > 0) {
+        this.printLine(`[WARN] Ya existían (ignoradas): ${skipped.join(', ')}`, "warning");
+      }
       return;
     }
 
     if (sub === 'remove' || sub === 'rm' || sub === 'del') {
-      const skillToRemove = args.slice(1).join(' ').trim();
-      if (!skillToRemove) {
+      const rawSkills = args.slice(1).join(' ');
+      if (!rawSkills.trim()) {
         synth.playErrorBeep();
-        this.printLine(`ERR: Especificá la habilidad a eliminar. Ej: skills remove Figma`, "error");
+        this.printLine(`ERR: Especificá las habilidades. Ej: skills remove Figma, VBA, Framer`, "error");
         return;
       }
+      // Splittear por coma
+      const skillsToRemove = rawSkills.split(',').map(s => s.trim()).filter(s => s.length > 0);
       const cats = ['advanced', 'intermediate', 'basicPlus', 'designSuite'];
-      let removed = false;
-      cats.forEach(cat => {
-        const idx = USER_PROFILE.skills[cat].findIndex(s => s.toLowerCase() === skillToRemove.toLowerCase());
-        if (idx !== -1) {
-          USER_PROFILE.skills[cat].splice(idx, 1);
-          removed = true;
-        }
+      const removed = [];
+      const notFound = [];
+      skillsToRemove.forEach(skillName => {
+        let found = false;
+        cats.forEach(cat => {
+          const idx = USER_PROFILE.skills[cat].findIndex(s => s.toLowerCase() === skillName.toLowerCase());
+          if (idx !== -1) {
+            USER_PROFILE.skills[cat].splice(idx, 1);
+            found = true;
+          }
+        });
+        if (found) removed.push(skillName);
+        else notFound.push(skillName);
       });
-      if (removed) {
+      if (removed.length > 0) {
         synth.playChime(400, 300, 200);
-        this.printLine(`[OK] "${skillToRemove}" eliminada del perfil.`, "system");
-      } else {
+        this.printLine(`[OK] Eliminadas: ${removed.join(', ')}`, "system");
+      }
+      if (notFound.length > 0) {
         synth.playErrorBeep();
-        this.printLine(`ERR: "${skillToRemove}" no fue encontrada en el perfil.`, "error");
+        this.printLine(`ERR: No encontradas en el perfil: ${notFound.join(', ')}`, "error");
       }
       return;
     }
