@@ -274,8 +274,13 @@ class UniversalTerminalShell {
     this.input.addEventListener('blur', () => {
       if (inputWrapper) inputWrapper.classList.remove('has-focus');
     });
+    // Manejar autofocus que dispara antes de DOMContentLoaded
+    if (document.activeElement === this.input && inputWrapper) {
+      inputWrapper.classList.add('has-focus');
+    }
 
     this.body.addEventListener('click', () => this.input.focus());
+
 
 
     document.querySelectorAll('.quick-controls button[data-cmd]').forEach(btn => {
@@ -373,23 +378,14 @@ class UniversalTerminalShell {
   updateDisplay() {
     const val = this.input.value;
     const pos = this.input.selectionStart ?? val.length;
-    const before = val.slice(0, pos);
-    const after = val.slice(pos);
-    // Limpiar el display y componer: texto-antes + cursor + texto-después
-    this.display.innerHTML = '';
-    const spanBefore = document.createElement('span');
-    spanBefore.textContent = before;
-    this.display.appendChild(spanBefore);
-    // El cursor real del span#cursor ya está en el DOM; movemos el display alrededor de él
-    const cursorEl = document.getElementById('cursor');
-    if (cursorEl) this.display.appendChild(cursorEl);
-    const spanAfter = document.createElement('span');
-    spanAfter.textContent = after;
-    this.display.appendChild(spanAfter);
+    // Los spans son fijos en el DOM, solo actualizamos su contenido
+    const before = document.getElementById('display-before');
+    const after = document.getElementById('display-after');
+    if (before) before.textContent = val.slice(0, pos);
+    if (after) after.textContent = val.slice(pos);
   }
 
   updateCursorPos() {
-    // Solo re-renderizar posición sin sonido
     this.updateDisplay();
   }
 
@@ -502,6 +498,7 @@ class UniversalTerminalShell {
     this.isBooting = false;
     this.input.disabled = false;
     this.input.focus();
+    this.updateDisplay(); // inicializar display-before/after al arrancar
   }
 
   getBackendBaseUrl() {
@@ -917,16 +914,22 @@ class UniversalTerminalShell {
     return key ? SENIORITY_ALIASES[key] : [];
   }
 
-  buildScanQuery(baseQuery) {
+  buildScanQuery(baseQuery, forcedSkills = null) {
     const seniority = USER_PROFILE.seniority;
     const parts = [];
 
     if (baseQuery && baseQuery.trim()) {
       parts.push(baseQuery.trim());
+    } else if (forcedSkills) {
+      // Re-intento con skills específicas
+      parts.push(...forcedSkills);
+    } else {
+      // Sin query manual: usar la primera skill avanzada del perfil para resultados relevantes
+      const topSkill = USER_PROFILE.skills.advanced[0];
+      if (topSkill) parts.push(topSkill);
     }
 
     if (seniority) {
-      // Agregar el seniority normalizado para que Computrabajo lo busque bien
       const canonicalMap = {
         'trainee': 'trainee',
         'junior': 'junior',
@@ -942,20 +945,23 @@ class UniversalTerminalShell {
     return parts.join(' ');
   }
 
-  async cmdScan(query = "") {
-    this.printLine("[RMT-OS] INICIANDO ESCANEO GLOBAL Y SCRAPER EN VIVO (FETCH/CHEERIO)...", "system");
-    await this.delay(200);
-    this.printLine("[INFO] La recolección de ofertas reales en Computrabajo se realiza en vivo...", "warning");
-    this.printLine("Conectando con Computrabajo Argentina...");
+  async cmdScan(query = "", _isRetry = false, _retrySkillIdx = 0) {
+    if (!_isRetry) {
+      this.printLine("[RMT-OS] INICIANDO ESCANEO GLOBAL Y SCRAPER EN VIVO (FETCH/CHEERIO)...", "system");
+      await this.delay(200);
+      this.printLine("[INFO] La recolección de ofertas reales en Computrabajo se realiza en vivo...", "warning");
+      this.printLine("Conectando con Computrabajo Argentina...");
+    } else {
+      this.printLine(`[RMT-OS] Reintentando con skill: "${USER_PROFILE.skills.advanced[_retrySkillIdx]}"...`, "system");
+    }
 
     // Informar seniority activo
-    if (USER_PROFILE.seniority) {
+    if (USER_PROFILE.seniority && !_isRetry) {
       const aliases = this.getSeniorityAliases(USER_PROFILE.seniority);
       this.printLine(`[SENIORITY] Nivel activo: ${USER_PROFILE.seniority} → buscando también: ${aliases.slice(0,4).join(', ')}...`, "system");
     }
     
     const progressLine = this.printLine("BUSCANDO VACANTES: [░░░░░░░░░░░░░░░░░░░░] 0%");
-    
     for (let p = 10; p <= 100; p += 15) {
       await this.delay(40);
       const capP = Math.min(p, 100);
@@ -966,23 +972,49 @@ class UniversalTerminalShell {
     
     try {
       const baseUrl = this.getBackendBaseUrl();
-      const effectiveQuery = this.buildScanQuery(query);
+      // En reintento, forzar la skill específica
+      const forcedSkills = _isRetry ? [USER_PROFILE.skills.advanced[_retrySkillIdx]] : null;
+      const effectiveQuery = this.buildScanQuery(query, forcedSkills);
       const url = effectiveQuery
         ? `${baseUrl}/api/jobs?q=${encodeURIComponent(effectiveQuery)}`
         : `${baseUrl}/api/jobs`;
       const response = await fetch(url);
       
-      if (!response.ok) {
-        throw new Error(`HTTP Error: ${response.status}`);
-      }
-
+      if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
       const data = await response.json();
       
       if (data && Array.isArray(data.jobs)) {
-        this.jobsList = this.processAndMatchJobs(data.jobs);
+        const processed = this.processAndMatchJobs(data.jobs);
+
+        // --- Lógica de reintento automático ---
+        const badCount = processed.filter(j => j.matchScore === null || j.matchScore === 0).length;
+        const allBad = processed.length === 0 || badCount === processed.length;
+        const maxRetries = Math.min(USER_PROFILE.skills.advanced.length - 1, 4); // hasta 4 skills extra
+
+        if (allBad && _retrySkillIdx < maxRetries) {
+          this.printLine(`⚠ Todas las ${processed.length} ofertas tienen 0%/N/A de compatibilidad. Refinando búsqueda...`, "warning");
+          await this.delay(300);
+          await this.cmdScan(query, true, _retrySkillIdx + 1);
+          return; // no continuar con este batch
+        }
+
+        // Si llegó hasta aquí (primer intento exitoso o último reintento), guardar resultados
+        if (_isRetry && processed.length > 0) {
+          // En reintento: combinar con los que ya teníamos (si los había) o reemplazar
+          this.jobsList = processed;
+        } else {
+          this.jobsList = processed;
+        }
+
         synth.playChime(400, 600, 250);
-        this.printLine(`[SUCCESS] ¡Escaneo terminado! Cargadas ${this.jobsList.length} ofertas laborales reales del portal.`, "system");
-        this.printLine("Escribe 'jobs' para ver el listado de compatibilidad.", "warning");
+        const goodCount = this.jobsList.filter(j => j.matchScore !== null && j.matchScore > 0).length;
+        this.printLine(`[SUCCESS] ¡Escaneo terminado! ${this.jobsList.length} ofertas cargadas. Con compatibilidad >0%: ${goodCount}.`, "system");
+        if (goodCount === 0) {
+          this.printLine(`⚠ Ninguna oferta con compatibilidad detectable. Probá: scan [habilidad] para buscar específicamente.`, "warning");
+          this.printLine(`Ej: scan C# o scan Python o scan .NET`, "warning");
+        } else {
+          this.printLine("Escribí 'jobs' para ver el listado de compatibilidad.", "warning");
+        }
       } else {
         throw new Error("Formato inválido de base de datos.");
       }
@@ -1251,6 +1283,68 @@ class UniversalTerminalShell {
 
   cmdSkills(args) {
     const sub = (args[0] || '').toLowerCase();
+
+    // ── EXPORT ──────────────────────────────────────────────────────────────
+    if (sub === 'export') {
+      const s = USER_PROFILE.skills;
+      const sen = USER_PROFILE.seniority || '';
+      // Formato compacto: [RMTP:1|SEN:Junior|ADV:Python,C#|INT:HTML|BAS:JS|DES:Blender]
+      const parts = [
+        `RMTP:1`,
+        `SEN:${sen}`,
+        `ADV:${s.advanced.join(',')}`,
+        `INT:${s.intermediate.join(',')}`,
+        `BAS:${s.basicPlus.join(',')}`,
+        `DES:${s.designSuite.join(',')}`
+      ];
+      const exportStr = `[${parts.join('|')}]`;
+      // Copiar al portapapeles
+      navigator.clipboard?.writeText(exportStr).catch(() => {});
+      synth.playChime(600, 900, 200);
+      this.printLine(`[OK] Perfil exportado y copiado al portapapeles:`, 'system');
+      const p = document.createElement('div');
+      p.className = 'line';
+      p.style.cssText = 'font-size:11px; word-break:break-all; background:rgba(0,0,0,0.3); padding:6px; margin-top:4px; cursor:pointer;';
+      p.textContent = exportStr;
+      p.title = 'Clic para copiar';
+      p.addEventListener('click', () => navigator.clipboard?.writeText(exportStr));
+      this.output.appendChild(p);
+      this.printLine(`Guardá ese texto. Para restaurarlo: skills import [texto]`, 'warning');
+      this.scrollToBottom();
+      return;
+    }
+
+    // ── IMPORT ──────────────────────────────────────────────────────────────
+    if (sub === 'import') {
+      const raw = args.slice(1).join(' ').trim();
+      const match = raw.match(/\[(.+)\]/);
+      if (!match) {
+        synth.playErrorBeep();
+        this.printLine(`ERR: Formato incorrecto. Pegá el texto generado por 'skills export'.`, 'error');
+        return;
+      }
+      const entries = match[1].split('|');
+      const map = {};
+      entries.forEach(e => {
+        const idx = e.indexOf(':');
+        if (idx !== -1) map[e.slice(0, idx)] = e.slice(idx + 1);
+      });
+      if (map['RMTP'] !== '1') {
+        synth.playErrorBeep();
+        this.printLine(`ERR: Código de perfil inválido o versión incompatible.`, 'error');
+        return;
+      }
+      if (map['SEN']) USER_PROFILE.seniority = map['SEN'];
+      if (map['ADV']) USER_PROFILE.skills.advanced = map['ADV'] ? map['ADV'].split(',').map(s => s.trim()).filter(Boolean) : [];
+      if (map['INT']) USER_PROFILE.skills.intermediate = map['INT'] ? map['INT'].split(',').map(s => s.trim()).filter(Boolean) : [];
+      if (map['BAS']) USER_PROFILE.skills.basicPlus = map['BAS'] ? map['BAS'].split(',').map(s => s.trim()).filter(Boolean) : [];
+      if (map['DES']) USER_PROFILE.skills.designSuite = map['DES'] ? map['DES'].split(',').map(s => s.trim()).filter(Boolean) : [];
+      synth.playChime(500, 800, 250);
+      const total = USER_PROFILE.skills.advanced.length + USER_PROFILE.skills.intermediate.length + USER_PROFILE.skills.basicPlus.length + USER_PROFILE.skills.designSuite.length;
+      this.printLine(`[OK] Perfil importado. ${total} habilidades cargadas. Seniority: ${USER_PROFILE.seniority || 'sin configurar'}.`, 'system');
+      this.printLine(`Verificá con: skills`, 'warning');
+      return;
+    }
 
     if (sub === 'add') {
       // skills add [categoria] skill1, skill2, skill3...
