@@ -10,7 +10,7 @@ const DEFAULT_PROFILE = {
   linkedin: "www.linkedin.com/in/joaquín-ezequiel-sosa-makara",
   portfolio: "jesmdev.site",
   summary: "Soy JESM, un Desarrollador Junior apasionado por la creación de soluciones innovadoras. Combino mi base técnica en software con habilidades de diseño, enfocándome siempre en entregar calidad, eficiencia y excelentes experiencias de usuario a mis clientes y equipos.",
-  seniority: "Junior",
+  seniority: "Analista Junior (Jr)",
   skills: {
     advanced: ["Python", "C#", ".NET", "Oracle SQL", "PL/SQL", "Windows", "MS Office"],
     intermediate: ["HTML", "CSS", "Figma", "Framer", "Photoshop", "Oracle Data Modeler", "SQL"],
@@ -37,10 +37,16 @@ const DEFAULT_PROFILE = {
 
 // Mapa de aliases de seniority para búsqueda expandida
 const SENIORITY_ALIASES = {
-  'Trainee': ['trainee', 'pasante', 'practicante', 'intern'],
-  'Junior': ['junior', 'jr'],
-  'Semi-Senior': ['semi-senior', 'semisenior', 'semi senior', 'semi_senior', 'semiSenior', 'SemiSenior', 'ssr', 'SSR', 'sseniority', 'pleno'],
-  'Senior': ['senior', 'sr', 'lead', 'tech lead', 'techlead', 'sr.', 'ssr', 'SSR']
+  'Presidente o CEO': ['presidente', 'presidenta', 'ceo', 'director ejecutivo', 'director ejecutiva', 'vicepresidente', 'vice-presidente'],
+  'Director': ['director', 'directora', 'board member'],
+  'Gerente': ['gerente', 'gerenta', 'gerencia', 'manager', 'gto', 'gte'],
+  'Jefe': ['jefe', 'jefa', 'head', 'jefatura'],
+  'Supervisor/Coordinador': ['supervisor', 'supervisora', 'coordinador', 'coordinadora', 'coordinacion', 'coordinación'],
+  'Analista Senior (Sr)': ['senior', 'sr', 'sr.', 'tech lead', 'techlead', 'lead', 'lider', 'líder'],
+  'Analista Semi Senior (SSr)': ['semi-senior', 'semisenior', 'semi senior', 'ssr', 'ssr.', 'pleno', 'semi-sr', 'semisr', 'semi sr'],
+  'Analista Junior (Jr)': ['junior', 'jr', 'jr.'],
+  'Auxiliar': ['auxiliar', 'asistente', 'ayudante'],
+  'Pasante o Trainee': ['trainee', 'pasante', 'practicante', 'intern', 'pasantía', 'pasantia', 'becario', 'becaria']
 };
 
 // Keywords para extraer del título cuando el servidor no detectó skills
@@ -831,7 +837,7 @@ class UniversalTerminalShell {
         <div class="line">Elimina una habilidad del perfil (busca en todas las categorías).</div>
 
         <div class="help-cmd">skills seniority [nivel]</div>
-        <div class="line">Setea tu seniority: Trainee, Junior, Semi-Senior, Senior. Mejora la búsqueda de scan.</div>
+        <div class="line">Setea tu seniority (Presidente, Gerente, Senior, SSr, Junior, Trainee, etc.). Filtra las ofertas automáticamente.</div>
         
         <div class="help-cmd">scan [query]</div>
         <div class="line">Busca ofertas reales según query. El seniority filtra los resultados automáticamente (no modifica la búsqueda).</div>
@@ -921,6 +927,52 @@ class UniversalTerminalShell {
       k => k.toLowerCase() === seniority.toLowerCase()
     );
     return key ? SENIORITY_ALIASES[key] : [];
+  }
+
+  detectJobSeniority(title) {
+    if (!title) return null;
+    const lower = title.toLowerCase();
+
+    const hasWord = (words) => {
+      return words.some(word => {
+        const escaped = word.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+        const regex = new RegExp(`(^|[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑüÜ])${escaped}(?![a-zA-Z0-9áéíóúñÁÉÍÓÚÑüÜ])`, 'i');
+        return regex.test(lower);
+      });
+    };
+
+    if (hasWord(['ceo', 'presidente', 'presidenta', 'vicepresidente', 'vice-presidente', 'director ejecutivo', 'director ejecutiva'])) {
+      return 'Presidente o CEO';
+    }
+    if (hasWord(['director', 'directora', 'board member'])) {
+      return 'Director';
+    }
+    if (hasWord(['gerente', 'gerenta', 'gerencia', 'manager', 'gto', 'gte'])) {
+      return 'Gerente';
+    }
+    if (hasWord(['jefe', 'jefa', 'head', 'jefatura'])) {
+      return 'Jefe';
+    }
+    if (hasWord(['supervisor', 'supervisora', 'coordinador', 'coordinadora', 'coordinacion', 'coordinación'])) {
+      return 'Supervisor/Coordinador';
+    }
+    if (hasWord(['semi-senior', 'semisenior', 'semi senior', 'ssr', 'ssr.', 'pleno', 'semi-sr', 'semisr', 'semi sr'])) {
+      return 'Analista Semi Senior (SSr)';
+    }
+    if (hasWord(['senior', 'sr', 'sr.', 'tech lead', 'techlead', 'lead', 'lider', 'líder'])) {
+      return 'Analista Senior (Sr)';
+    }
+    if (hasWord(['junior', 'jr', 'jr.'])) {
+      return 'Analista Junior (Jr)';
+    }
+    if (hasWord(['auxiliar', 'asistente', 'ayudante'])) {
+      return 'Auxiliar';
+    }
+    if (hasWord(['trainee', 'pasante', 'practicante', 'intern', 'pasantía', 'pasantia', 'becario', 'becaria'])) {
+      return 'Pasante o Trainee';
+    }
+
+    return null;
   }
 
   buildScanQuery(baseQuery, forcedSkills = null) {
@@ -1131,11 +1183,26 @@ class UniversalTerminalShell {
       ...USER_PROFILE.skills.designSuite
     ].map(s => s.toLowerCase());
 
-    // También incluir aliases de seniority del perfil para matching
-    const seniorityAliases = this.getSeniorityAliases(USER_PROFILE.seniority)
-      .map(a => a.toLowerCase());
+    const userSeniority = USER_PROFILE.seniority;
 
-    return jobs.map((job, index) => {
+    // 1. Clasificar y filtrar los puestos por seniority
+    let filteredJobs = jobs.map(job => {
+      // Asignar o sobreescribir la experiencia en el cliente para alinearse con los 10 niveles
+      job.experience = this.detectJobSeniority(job.title) || 'No especificado';
+      return job;
+    });
+
+    if (userSeniority && userSeniority !== 'No configurado') {
+      filteredJobs = filteredJobs.filter(job => {
+        // Si el puesto no especifica seniority, se mantiene para todos
+        if (job.experience === 'No especificado') return true;
+        // Si especifica seniority, debe coincidir exactamente con el del usuario
+        return job.experience.toLowerCase() === userSeniority.toLowerCase();
+      });
+    }
+
+    // 2. Procesar y calcular compatibilidad Jaccard para los puestos que pasaron el filtro
+    return filteredJobs.map((job, index) => {
       job.displayId = index + 1;
       let jobReqs = (job.requirements || []).map(r => r.toLowerCase());
       
@@ -1171,11 +1238,8 @@ class UniversalTerminalShell {
           return mySkill === reqLower;
         });
 
-        // También considerar match si el req es del seniority del perfil
-        const seniorityMatch = seniorityAliases.some(alias => reqLower.includes(alias));
-
         const displayReq = job.requirements.find(r => r.toLowerCase() === reqLower) || req;
-        if (matched || seniorityMatch) {
+        if (matched) {
           matching.push(displayReq);
         } else {
           missing.push(displayReq);
@@ -1519,7 +1583,10 @@ class UniversalTerminalShell {
       if (!levelArg) {
         const current = USER_PROFILE.seniority || 'No configurado';
         this.printLine(`[SENIORITY] Nivel actual: ${current}`, "system");
-        this.printLine(`Niveles disponibles: Trainee, Junior, Semi-Senior, Senior`, "warning");
+        this.printLine(`Niveles disponibles:`, "warning");
+        Object.keys(SENIORITY_ALIASES).forEach((lvl, idx) => {
+          this.printLine(` ${idx + 1}. ${lvl}`, "warning");
+        });
         this.printLine(`Uso: skills seniority Junior`, "warning");
         return;
       }
@@ -1532,14 +1599,17 @@ class UniversalTerminalShell {
       );
       if (!canonical) {
         synth.playErrorBeep();
-        this.printLine(`ERR: Nivel desconocido. Opciones: Trainee, Junior, Semi-Senior, Senior`, "error");
+        this.printLine(`ERR: Nivel desconocido. Usá uno de los 10 niveles disponibles:`, "error");
+        Object.keys(SENIORITY_ALIASES).forEach((lvl) => {
+          this.printLine(` - ${lvl}`, "error");
+        });
         return;
       }
       USER_PROFILE.seniority = canonical;
       const aliases = SENIORITY_ALIASES[canonical];
       synth.playChime(500, 800, 250);
       this.printLine(`[OK] Seniority seteado: ${canonical}`, "system");
-      this.printLine(`[INFO] Al hacer 'scan', se buscará con: ${aliases.join(', ')}`, "warning");
+      this.printLine(`[INFO] Al hacer 'scan', se filtrarán las ofertas para este nivel.`, "warning");
       return;
     }
 
@@ -1565,7 +1635,7 @@ class UniversalTerminalShell {
           <span class="match-tag matched" style="font-size:13px;">${seniority}</span>
           ${seniorityAliases.length > 0
             ? `<span style="font-size:11px; color:var(--theme-text-dim);">→ aliases: ${seniorityAliases.join(', ')}</span>`
-            : `<span style="font-size:11px; color:var(--theme-text-dim);">Usá: skills seniority [Trainee/Junior/Semi-Senior/Senior]</span>`
+            : `<span style="font-size:11px; color:var(--theme-text-dim);">Usá: skills seniority [nivel]</span>`
           }
         </div>
       </div>
@@ -1612,7 +1682,7 @@ class UniversalTerminalShell {
         &nbsp;|&nbsp; Ejemplos de uso:
         <br>→ <strong>skills add advanced React</strong>
         <br>→ <strong>skills remove VBA</strong>
-        <br>→ <strong>skills seniority Semi-Senior</strong>
+        <br>→ <strong>skills seniority Junior</strong>
       </div>
     `;
     this.output.appendChild(div);

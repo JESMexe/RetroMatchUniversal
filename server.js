@@ -62,6 +62,52 @@ function extractSkills(text, tags = []) {
   return Array.from(foundSkills);
 }
 
+function detectSeniority(title) {
+  if (!title) return null;
+  const lower = title.toLowerCase();
+
+  const hasWord = (words) => {
+    return words.some(word => {
+      const escaped = word.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+      const regex = new RegExp(`(^|[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑüÜ])${escaped}(?![a-zA-Z0-9áéíóúñÁÉÍÓÚÑüÜ])`, 'i');
+      return regex.test(lower);
+    });
+  };
+
+  if (hasWord(['ceo', 'presidente', 'presidenta', 'vicepresidente', 'vice-presidente', 'director ejecutivo', 'director ejecutiva'])) {
+    return 'Presidente o CEO';
+  }
+  if (hasWord(['director', 'directora', 'board member'])) {
+    return 'Director';
+  }
+  if (hasWord(['gerente', 'gerenta', 'gerencia', 'manager', 'gto', 'gte'])) {
+    return 'Gerente';
+  }
+  if (hasWord(['jefe', 'jefa', 'head', 'jefatura'])) {
+    return 'Jefe';
+  }
+  if (hasWord(['supervisor', 'supervisora', 'coordinador', 'coordinadora', 'coordinacion', 'coordinación'])) {
+    return 'Supervisor/Coordinador';
+  }
+  if (hasWord(['semi-senior', 'semisenior', 'semi senior', 'ssr', 'ssr.', 'pleno', 'semi-sr', 'semisr', 'semi sr'])) {
+    return 'Analista Semi Senior (SSr)';
+  }
+  if (hasWord(['senior', 'sr', 'sr.', 'tech lead', 'techlead', 'lead', 'lider', 'líder'])) {
+    return 'Analista Senior (Sr)';
+  }
+  if (hasWord(['junior', 'jr', 'jr.'])) {
+    return 'Analista Junior (Jr)';
+  }
+  if (hasWord(['auxiliar', 'asistente', 'ayudante'])) {
+    return 'Auxiliar';
+  }
+  if (hasWord(['trainee', 'pasante', 'practicante', 'intern', 'pasantía', 'pasantia', 'becario', 'becaria'])) {
+    return 'Pasante o Trainee';
+  }
+
+  return null;
+}
+
 app.get('/api/jobs', async (req, res) => {
   const query = (req.query.q || '').trim();
   console.log(`[RMT-OS UNIV] Scan request received. Query: "${query}"`);
@@ -140,13 +186,7 @@ app.get('/api/jobs', async (req, res) => {
           }
         });
         
-        let experience = 'Junior / Mid';
-        const titleLower = title.toLowerCase();
-        if (titleLower.includes('senior') || titleLower.includes('sr') || titleLower.includes('lead') || titleLower.includes('ssr') || titleLower.includes('semi senior') || titleLower.includes('semisenior') || titleLower.includes('pleno')) {
-          experience = 'Senior';
-        } else if (titleLower.includes('junior') || titleLower.includes('jr') || titleLower.includes('trainee') || titleLower.includes('auxiliar') || titleLower.includes('practicante')) {
-          experience = 'Junior';
-        }
+        const experience = detectSeniority(title) || 'No especificado';
         
         const description = `Se busca ${title} para formar parte del equipo de ${company} en ${location}. Modalidad de trabajo: ${workMode}. Salario: ${salary}. Excelente oportunidad para profesionales que cuenten con habilidades técnicas y metodológicas acordes al perfil del puesto, promoviendo el crecimiento dentro de la organización.`;
         
